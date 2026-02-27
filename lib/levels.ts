@@ -1,42 +1,6 @@
-export type Difficulty = 'Beginner' | 'Easy' | 'Medium' | 'Hard' | 'Expert';
-
-export interface ApiEndpoint {
-  method: string;
-  path: string;
-  description: string;
-  requiresAuth?: boolean;
-  exampleBody?: string;
-}
-
-export interface ValidationParams {
-  method: string;
-  url: string;
-  requestHeaders: Record<string, string>;
-  requestBody: unknown;
-  statusCode: number;
-  responseHeaders: Record<string, string>;
-  responseBody: unknown;
-}
-
-export interface Level {
-  id: number;
-  title: string;
-  difficulty: Difficulty;
-  concept: string;
-  description: string;
-  task: string;
-  hints: string[];
-  successMessage: string;
-  successCriteria: string;
-  validate: (params: ValidationParams) => boolean;
-  defaultMethod: string;
-  defaultUrl: string;
-  defaultHeaders?: { key: string; value: string }[];
-  defaultBody?: string;
-  endpoints: ApiEndpoint[];
-  tip?: string;
-  multiStep?: { label: string; done: boolean }[];
-}
+// Re-export types from the shared types module for backwards compatibility
+export type { Difficulty, ApiEndpoint, ValidationParams, Level } from './types';
+import type { Difficulty, ApiEndpoint, ValidationParams, Level } from './types';
 
 export const levels: Level[] = [
   // ─── LEVEL 1 ────────────────────────────────────────────────────────────────

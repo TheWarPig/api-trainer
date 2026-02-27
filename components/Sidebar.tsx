@@ -1,8 +1,15 @@
 'use client';
 
-import { levels, type Difficulty } from '@/lib/levels';
+import type { Difficulty } from '@/lib/types';
+
+interface LevelLike {
+  id: number;
+  title: string;
+  difficulty: Difficulty;
+}
 
 interface SidebarProps {
+  levels: LevelLike[];
   currentLevel: number;
   completedLevels: Set<number>;
   onSelectLevel: (id: number) => void;
@@ -24,7 +31,7 @@ const difficultyDot: Record<Difficulty, string> = {
   Expert:   'bg-red-400',
 };
 
-export default function Sidebar({ currentLevel, completedLevels, onSelectLevel }: SidebarProps) {
+export default function Sidebar({ levels, currentLevel, completedLevels, onSelectLevel }: SidebarProps) {
   const completed = completedLevels.size;
 
   return (

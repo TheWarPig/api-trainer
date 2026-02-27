@@ -7,7 +7,9 @@ import ResponsePanel, { type ResponseData } from '@/components/ResponsePanel';
 import AssignmentPanel from '@/components/AssignmentPanel';
 import DataExplorer from '@/components/DataExplorer';
 import ApiDocs from '@/components/ApiDocs';
-import { levels } from '@/lib/levels';
+import { levels as builtinLevels } from '@/lib/levels';
+import { createValidator } from '@/lib/validation-engine';
+import type { SerializableLevel, Level } from '@/lib/types';
 
 const STORAGE_KEY = 'api-trainer-completed';
 
@@ -37,7 +39,38 @@ function buildHeaders(rows: HeaderRow[]): Record<string, string> {
   return out;
 }
 
+// Convert a SerializableLevel to a Level with a validate function
+function toLevel(sl: SerializableLevel): Level {
+  // Check if there's an unmodified built-in level we can use the original validate for
+  const builtin = builtinLevels.find(b => b.id === sl.id);
+
+  return {
+    id: sl.id,
+    title: sl.title,
+    difficulty: sl.difficulty,
+    concept: sl.concept,
+    description: sl.description,
+    task: sl.task,
+    hints: sl.hints,
+    successMessage: sl.successMessage,
+    successCriteria: sl.successCriteria,
+    validate: sl.validationRules && sl.validationRules.length > 0
+      ? createValidator(sl.validationRules)
+      : builtin
+        ? builtin.validate
+        : () => false,
+    defaultMethod: sl.defaultMethod,
+    defaultUrl: sl.defaultUrl,
+    defaultHeaders: sl.defaultHeaders,
+    defaultBody: sl.defaultBody,
+    endpoints: sl.endpoints,
+    tip: sl.tip,
+    multiStep: sl.multiStep,
+  };
+}
+
 export default function Home() {
+  const [levels, setLevels] = useState<Level[]>(builtinLevels);
   const [currentLevel, setCurrentLevel] = useState(1);
   const [completedLevels, setCompletedLevels] = useState<Set<number>>(new Set());
   const [justCompleted, setJustCompleted] = useState<Set<number>>(new Set());
@@ -91,6 +124,20 @@ export default function Home() {
     setJustCompleted(c);
   }, []);
 
+  // Fetch levels from API
+  useEffect(() => {
+    fetch('/api/levels')
+      .then(res => res.json())
+      .then((data: SerializableLevel[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setLevels(data.map(toLevel));
+        }
+      })
+      .catch(() => {
+        // Fall back to built-in levels on error
+      });
+  }, []);
+
   // Apply level defaults when switching levels
   const applyLevel = useCallback((levelId: number) => {
     const lvl = levels.find(l => l.id === levelId);
@@ -101,7 +148,7 @@ export default function Home() {
     setBody('');
     setResponse(null);
     setSendError('');
-  }, []);
+  }, [levels]);
 
   const handleSelectLevel = useCallback((id: number) => {
     setCurrentLevel(id);
@@ -196,7 +243,7 @@ export default function Home() {
       setIsLoading(false);
       setRefreshToken(t => t + 1);
     }
-  }, [url, method, headers, body, currentLevel, completedLevels]);
+  }, [url, method, headers, body, currentLevel, completedLevels, levels]);
 
   const handleNextLevel = useCallback(() => {
     if (currentLevel < levels.length) {
@@ -204,7 +251,7 @@ export default function Home() {
       setCurrentLevel(next);
       applyLevel(next);
     }
-  }, [currentLevel, applyLevel]);
+  }, [currentLevel, applyLevel, levels.length]);
 
   const handleReset = useCallback(async () => {
     try {
@@ -224,7 +271,7 @@ export default function Home() {
     }
   }, [applyLevel]);
 
-  const level = levels.find(l => l.id === currentLevel)!;
+  const level = levels.find(l => l.id === currentLevel) || levels[0];
   const isComplete = justCompleted.has(currentLevel);
 
   return (
@@ -337,6 +384,7 @@ export default function Home() {
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Levels sidebar */}
         <Sidebar
+          levels={levels}
           currentLevel={currentLevel}
           completedLevels={completedLevels}
           onSelectLevel={handleSelectLevel}
