@@ -146,7 +146,7 @@ export default function RequestBuilder({
         </div>
 
         {/* Base URL tag */}
-        <span className="text-xs text-[var(--color-text-faint)] shrink-0 font-mono">localhost:3000</span>
+        <span className="text-xs text-[var(--color-text-faint)] shrink-0 font-mono">api-trainerx</span>
 
         {/* URL input */}
         <input

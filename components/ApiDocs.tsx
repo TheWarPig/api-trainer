@@ -610,7 +610,7 @@ export default function ApiDocs({ open, onClose }: ApiDocsProps) {
         <div className="flex items-center gap-6 px-5 py-2.5 bg-[var(--color-bg-deep)] border-b border-[var(--color-border-tertiary)] shrink-0 text-[11px]">
           <div className="flex items-center gap-1.5">
             <span className="text-[var(--color-text-faint)]">Base URL</span>
-            <code className="text-[var(--color-json-key)] font-mono">http://localhost:3000</code>
+            <code className="text-[var(--color-json-key)] font-mono">http://api-trainerx</code>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-[var(--color-text-faint)]">Auth</span>
