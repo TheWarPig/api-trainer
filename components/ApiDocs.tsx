@@ -570,7 +570,7 @@ export default function ApiDocs({ open, onClose }: ApiDocsProps) {
             </div>
             <div>
               <span className="text-sm font-bold text-[var(--color-text-primary)]">API Reference</span>
-              <span className="ml-2 text-[10px] text-[var(--color-text-dimmed)]">Mock Server · localhost:3000</span>
+              <span className="ml-2 text-[10px] text-[var(--color-text-dimmed)]">Mock Server · api-trainerx</span>
             </div>
           </div>
 
