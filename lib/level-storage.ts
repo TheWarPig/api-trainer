@@ -1,85 +1,88 @@
-import fs from 'fs';
-import path from 'path';
-import { levels as builtinLevels } from './levels';
-import { builtinValidationMap } from './builtin-validation-map';
-import type { LevelStorage, SerializableLevel } from './types';
+import { ensureTable, sql, rowToLevel } from './db';
+import type { SerializableLevel } from './types';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DATA_FILE = path.join(DATA_DIR, 'levels.json');
-
-function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+export async function getAllLevels(): Promise<SerializableLevel[]> {
+  await ensureTable();
+  // Note: ORDER BY is done in JS because the neon driver has a bug
+  // where SELECT * with ORDER BY on an integer column can drop rows.
+  const rows = await sql`SELECT * FROM levels`;
+  return rows
+    .map(row => rowToLevel(row as Record<string, unknown>))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-export function readStorage(): LevelStorage {
-  ensureDir();
-  if (!fs.existsSync(DATA_FILE)) {
-    return { overrides: {}, custom: [], order: [] };
-  }
-  try {
-    const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-    return JSON.parse(raw) as LevelStorage;
-  } catch {
-    return { overrides: {}, custom: [], order: [] };
-  }
+export const getMergedLevels = getAllLevels;
+
+export async function getLevelById(id: number): Promise<SerializableLevel | null> {
+  await ensureTable();
+  const rows = await sql`SELECT * FROM levels WHERE id = ${id}`;
+  if (rows.length === 0) return null;
+  return rowToLevel(rows[0] as Record<string, unknown>);
 }
 
-export function writeStorage(data: LevelStorage) {
-  ensureDir();
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
+export async function upsertLevel(level: SerializableLevel): Promise<void> {
+  await ensureTable();
+  await sql`
+    INSERT INTO levels (id, sort_order, is_built_in, title, difficulty, concept,
+      description, task, hints, success_message, success_criteria, validation_rules,
+      default_method, default_url, default_headers, default_body, endpoints, tip, multi_step)
+    VALUES (
+      ${level.id},
+      ${level.sortOrder},
+      ${level.isBuiltIn},
+      ${level.title},
+      ${level.difficulty},
+      ${level.concept},
+      ${level.description},
+      ${level.task},
+      ${JSON.stringify(level.hints)}::jsonb,
+      ${level.successMessage},
+      ${level.successCriteria},
+      ${JSON.stringify(level.validationRules)}::jsonb,
+      ${level.defaultMethod},
+      ${level.defaultUrl},
+      ${level.defaultHeaders ? JSON.stringify(level.defaultHeaders) : null}::jsonb,
+      ${level.defaultBody ?? null},
+      ${JSON.stringify(level.endpoints)}::jsonb,
+      ${level.tip ?? null},
+      ${level.multiStep ? JSON.stringify(level.multiStep) : null}::jsonb
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      sort_order = EXCLUDED.sort_order,
+      is_built_in = EXCLUDED.is_built_in,
+      title = EXCLUDED.title,
+      difficulty = EXCLUDED.difficulty,
+      concept = EXCLUDED.concept,
+      description = EXCLUDED.description,
+      task = EXCLUDED.task,
+      hints = EXCLUDED.hints,
+      success_message = EXCLUDED.success_message,
+      success_criteria = EXCLUDED.success_criteria,
+      validation_rules = EXCLUDED.validation_rules,
+      default_method = EXCLUDED.default_method,
+      default_url = EXCLUDED.default_url,
+      default_headers = EXCLUDED.default_headers,
+      default_body = EXCLUDED.default_body,
+      endpoints = EXCLUDED.endpoints,
+      tip = EXCLUDED.tip,
+      multi_step = EXCLUDED.multi_step
+  `;
 }
 
-function builtinToSerializable(level: typeof builtinLevels[number], index: number): SerializableLevel {
-  const { validate, ...rest } = level;
-  void validate;
-  return {
-    ...rest,
-    validationRules: builtinValidationMap[level.id] || [],
-    isBuiltIn: true,
-    sortOrder: index,
-  };
+export async function deleteLevel(id: number): Promise<void> {
+  await ensureTable();
+  await sql`DELETE FROM levels WHERE id = ${id}`;
 }
 
-export function getMergedLevels(): SerializableLevel[] {
-  const storage = readStorage();
+export async function getNextCustomId(): Promise<number> {
+  await ensureTable();
+  const rows = await sql`SELECT MAX(id) as max_id FROM levels`;
+  return (Number(rows[0].max_id) || 0) + 1;
+}
 
-  // Convert built-in levels to serializable
-  const merged: SerializableLevel[] = builtinLevels.map((lvl, i) => {
-    const base = builtinToSerializable(lvl, i);
-    const override = storage.overrides[String(lvl.id)];
-    if (override) {
-      return { ...base, ...override, id: lvl.id, isBuiltIn: true };
-    }
-    return base;
-  });
-
-  // Add custom levels
-  for (const custom of storage.custom) {
-    merged.push({ ...custom, isBuiltIn: false });
+export async function updateSortOrders(orderedIds: number[]): Promise<void> {
+  await ensureTable();
+  for (let i = 0; i < orderedIds.length; i++) {
+    await sql`UPDATE levels SET sort_order = ${i} WHERE id = ${orderedIds[i]}`;
   }
-
-  // Apply ordering if defined
-  if (storage.order.length > 0) {
-    const orderMap = new Map(storage.order.map((id, idx) => [id, idx]));
-    merged.sort((a, b) => {
-      const ai = orderMap.has(a.id) ? orderMap.get(a.id)! : 9999;
-      const bi = orderMap.has(b.id) ? orderMap.get(b.id)! : 9999;
-      return ai - bi;
-    });
-  }
-
-  // Update sortOrder to match final position
-  merged.forEach((lvl, i) => { lvl.sortOrder = i; });
-
-  return merged;
-}
-
-export function getNextCustomId(): number {
-  const storage = readStorage();
-  const builtinIds = builtinLevels.map(l => l.id);
-  const customIds = storage.custom.map(l => l.id);
-  const allIds = [...builtinIds, ...customIds];
-  return Math.max(...allIds, 0) + 1;
 }

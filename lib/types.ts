@@ -86,9 +86,3 @@ export interface SerializableLevel {
   isBuiltIn: boolean;
   sortOrder: number;
 }
-
-export interface LevelStorage {
-  overrides: Record<string, Partial<SerializableLevel>>;
-  custom: SerializableLevel[];
-  order: number[];
-}

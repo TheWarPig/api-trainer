@@ -70,8 +70,9 @@ function toLevel(sl: SerializableLevel): Level {
 }
 
 export default function Home() {
-  const [levels, setLevels] = useState<Level[]>(builtinLevels);
-  const [currentLevel, setCurrentLevel] = useState(1);
+  const [levels, setLevels] = useState<Level[]>([]);
+  const [levelsLoaded, setLevelsLoaded] = useState(false);
+  const [currentLevel, setCurrentLevel] = useState(0);
   const [completedLevels, setCompletedLevels] = useState<Set<number>>(new Set());
   const [justCompleted, setJustCompleted] = useState<Set<number>>(new Set());
 
@@ -130,11 +131,20 @@ export default function Home() {
       .then(res => res.json())
       .then((data: SerializableLevel[]) => {
         if (Array.isArray(data) && data.length > 0) {
-          setLevels(data.map(toLevel));
+          const mapped = data.map(toLevel);
+          setLevels(mapped);
+          setCurrentLevel(mapped[0].id);
+        } else {
+          setLevels(builtinLevels);
+          setCurrentLevel(builtinLevels[0].id);
         }
       })
       .catch(() => {
-        // Fall back to built-in levels on error
+        setLevels(builtinLevels);
+        setCurrentLevel(builtinLevels[0].id);
+      })
+      .finally(() => {
+        setLevelsLoaded(true);
       });
   }, []);
 
@@ -155,10 +165,6 @@ export default function Home() {
     applyLevel(id);
   }, [applyLevel]);
 
-  useEffect(() => {
-    applyLevel(1);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleSend = useCallback(async () => {
     if (!url.trim()) return;
@@ -246,12 +252,13 @@ export default function Home() {
   }, [url, method, headers, body, currentLevel, completedLevels, levels]);
 
   const handleNextLevel = useCallback(() => {
-    if (currentLevel < levels.length) {
-      const next = currentLevel + 1;
-      setCurrentLevel(next);
-      applyLevel(next);
+    const idx = levels.findIndex(l => l.id === currentLevel);
+    if (idx >= 0 && idx < levels.length - 1) {
+      const nextLevel = levels[idx + 1];
+      setCurrentLevel(nextLevel.id);
+      applyLevel(nextLevel.id);
     }
-  }, [currentLevel, applyLevel, levels.length]);
+  }, [currentLevel, applyLevel, levels]);
 
   const handleReset = useCallback(async () => {
     try {
@@ -266,13 +273,22 @@ export default function Home() {
       setCompletedLevels(empty);
       setJustCompleted(empty);
       saveCompleted(empty);
-      setCurrentLevel(1);
-      applyLevel(1);
+      const firstId = levels.length > 0 ? levels[0].id : 1;
+      setCurrentLevel(firstId);
+      applyLevel(firstId);
     }
-  }, [applyLevel]);
+  }, [applyLevel, levels]);
 
   const level = levels.find(l => l.id === currentLevel) || levels[0];
   const isComplete = justCompleted.has(currentLevel);
+
+  if (!levelsLoaded) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[var(--color-bg-deepest)]">
+        <div className="text-[var(--color-text-dimmed)] text-sm">Loading levels...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[var(--color-bg-deepest)]">
@@ -293,13 +309,10 @@ export default function Home() {
 
         {/* Center: level indicator */}
         <div className="flex-1 flex items-center justify-center gap-2">
-          {levels.map(l => (
+          {levels.map((l, idx) => (
             <button
               key={l.id}
-              onClick={() => {
-                const isUnlocked = l.id === 1 || completedLevels.has(l.id - 1) || completedLevels.has(l.id);
-                if (isUnlocked) handleSelectLevel(l.id);
-              }}
+              onClick={() => handleSelectLevel(l.id)}
               title={l.title}
               className={`
                 w-6 h-6 rounded-full text-[10px] font-bold transition-all shrink-0
@@ -311,7 +324,7 @@ export default function Home() {
                 }
               `}
             >
-              {completedLevels.has(l.id) && l.id !== currentLevel ? '✓' : l.id}
+              {completedLevels.has(l.id) && l.id !== currentLevel ? '✓' : idx + 1}
             </button>
           ))}
           <span className="ml-2 text-xs text-[var(--color-text-dimmed)]">
@@ -430,7 +443,7 @@ export default function Home() {
           isComplete={isComplete}
           onNextLevel={handleNextLevel}
           onReset={handleReset}
-          isLastLevel={currentLevel === levels.length}
+          isLastLevel={levels.length > 0 && currentLevel === levels[levels.length - 1].id}
         />
       </div>
 

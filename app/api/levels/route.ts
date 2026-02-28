@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getMergedLevels } from '@/lib/level-storage';
+import { getAllLevels } from '@/lib/level-storage';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const levels = getMergedLevels();
+  const levels = await getAllLevels();
   return NextResponse.json(levels);
 }

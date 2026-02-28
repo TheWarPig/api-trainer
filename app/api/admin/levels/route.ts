@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '@/lib/admin-auth';
-import { getMergedLevels, readStorage, writeStorage, getNextCustomId } from '@/lib/level-storage';
+import { getAllLevels, upsertLevel, getNextCustomId } from '@/lib/level-storage';
 import type { SerializableLevel } from '@/lib/types';
 
 export async function GET(request: Request) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const levels = getMergedLevels();
+  const levels = await getAllLevels();
   return NextResponse.json(levels);
 }
 
@@ -18,9 +18,9 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const storage = readStorage();
+    const levels = await getAllLevels();
 
-    const newId = getNextCustomId();
+    const newId = await getNextCustomId();
     const newLevel: SerializableLevel = {
       id: newId,
       title: body.title || 'New Level',
@@ -40,15 +40,10 @@ export async function POST(request: Request) {
       tip: body.tip || '',
       multiStep: body.multiStep || undefined,
       isBuiltIn: false,
-      sortOrder: getMergedLevels().length,
+      sortOrder: levels.length,
     };
 
-    storage.custom.push(newLevel);
-    // Add to order
-    if (storage.order.length > 0) {
-      storage.order.push(newId);
-    }
-    writeStorage(storage);
+    await upsertLevel(newLevel);
 
     return NextResponse.json(newLevel, { status: 201 });
   } catch {

@@ -54,10 +54,10 @@ export default function Sidebar({ levels, currentLevel, completedLevels, onSelec
 
       {/* Level list */}
       <nav className="flex-1 overflow-y-auto py-2">
-        {levels.map(level => {
+        {levels.map((level, idx) => {
           const isCompleted = completedLevels.has(level.id);
           const isActive    = currentLevel === level.id;
-          const isLocked    = level.id > 1 && !completedLevels.has(level.id - 1) && !isCompleted && !isActive;
+          const isLocked    = false;
 
           return (
             <button
@@ -82,7 +82,7 @@ export default function Sidebar({ levels, currentLevel, completedLevels, onSelec
                   </svg>
                 ) : (
                   <span className={`text-xs font-bold ${isActive ? 'text-[#FF6C37]' : 'text-[var(--color-text-dimmed)]'}`}>
-                    {level.id}
+                    {idx + 1}
                   </span>
                 )}
               </span>
