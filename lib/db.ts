@@ -127,4 +127,112 @@ export async function ensureTable() {
   await initPromise;
 }
 
+// ── Mock data tables ──
+
+import type { User, Product, Order } from './store';
+
+let mockInitPromise: Promise<void> | null = null;
+
+async function doMockInit() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS mock_users (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      role TEXT NOT NULL,
+      age INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS mock_products (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      price NUMERIC(10,2) NOT NULL,
+      category TEXT NOT NULL DEFAULT 'general',
+      featured BOOLEAN NOT NULL DEFAULT false,
+      stock INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS mock_orders (
+      id INTEGER PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      status TEXT NOT NULL,
+      total NUMERIC(10,2) NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `;
+
+  // Seed if empty
+  const userCount = await sql`SELECT COUNT(*) as cnt FROM mock_users`;
+  if (Number(userCount[0].cnt) === 0) {
+    await sql`INSERT INTO mock_users (id, name, email, role, age, created_at) VALUES
+      (1, 'Alice Johnson', 'alice@example.com', 'admin', 28, '2024-01-15T10:00:00Z'),
+      (2, 'Bob Smith', 'bob@example.com', 'user', 34, '2024-02-20T14:30:00Z'),
+      (3, 'Carol Williams', 'carol@example.com', 'moderator', 25, '2024-03-10T09:15:00Z')`;
+  }
+
+  const productCount = await sql`SELECT COUNT(*) as cnt FROM mock_products`;
+  if (Number(productCount[0].cnt) === 0) {
+    await sql`INSERT INTO mock_products (id, name, price, category, featured, stock, created_at) VALUES
+      (1, 'Wireless Headphones', 99.99, 'electronics', true, 50, '2024-01-01T00:00:00Z'),
+      (2, 'Mechanical Keyboard', 149.99, 'electronics', false, 30, '2024-01-02T00:00:00Z'),
+      (3, 'Ergonomic Mouse', 59.99, 'electronics', true, 100, '2024-01-03T00:00:00Z')`;
+  }
+
+  const orderCount = await sql`SELECT COUNT(*) as cnt FROM mock_orders`;
+  if (Number(orderCount[0].cnt) === 0) {
+    await sql`INSERT INTO mock_orders (id, user_id, product_id, quantity, status, total, created_at) VALUES
+      (1, 1, 1, 1, 'delivered', 99.99, '2024-02-01T00:00:00Z'),
+      (2, 1, 3, 2, 'shipped', 119.98, '2024-02-15T00:00:00Z'),
+      (3, 2, 2, 1, 'processing', 149.99, '2024-03-01T00:00:00Z')`;
+  }
+}
+
+export async function ensureMockTables() {
+  if (!mockInitPromise) {
+    mockInitPromise = doMockInit();
+  }
+  await mockInitPromise;
+}
+
+export function rowToUser(row: Record<string, unknown>): User {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    email: row.email as string,
+    role: row.role as User['role'],
+    age: row.age as number,
+    createdAt: row.created_at as string,
+  };
+}
+
+export function rowToProduct(row: Record<string, unknown>): Product {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    price: Number(row.price),
+    category: row.category as string,
+    featured: row.featured as boolean,
+    stock: row.stock as number,
+    createdAt: row.created_at as string,
+  };
+}
+
+export function rowToOrder(row: Record<string, unknown>): Order {
+  return {
+    id: row.id as number,
+    userId: row.user_id as number,
+    productId: row.product_id as number,
+    quantity: row.quantity as number,
+    status: row.status as Order['status'],
+    total: Number(row.total),
+    createdAt: row.created_at as string,
+  };
+}
+
 export { sql };

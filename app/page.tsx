@@ -10,6 +10,8 @@ import ApiDocs from '@/components/ApiDocs';
 import { levels as builtinLevels } from '@/lib/levels';
 import { createValidator } from '@/lib/validation-engine';
 import type { SerializableLevel, Level } from '@/lib/types';
+import { mockFetch } from '@/lib/mock-fetch';
+import { isMockDataInitialized, setMockData } from '@/lib/mock-storage';
 
 const STORAGE_KEY = 'api-trainer-completed';
 
@@ -148,6 +150,25 @@ export default function Home() {
       });
   }, []);
 
+  // Initialize mock data in localStorage on first visit
+  useEffect(() => {
+    if (isMockDataInitialized()) return;
+    fetch('/api/seed-data')
+      .then(res => res.json())
+      .then(seed => {
+        setMockData({
+          users: seed.users,
+          products: seed.products,
+          orders: seed.orders,
+          nextUserId: Math.max(0, ...seed.users.map((u: { id: number }) => u.id)) + 1,
+          nextProductId: Math.max(0, ...seed.products.map((p: { id: number }) => p.id)) + 1,
+          nextOrderId: Math.max(0, ...seed.orders.map((o: { id: number }) => o.id)) + 1,
+        });
+        setRefreshToken(t => t + 1);
+      })
+      .catch(() => { /* seed endpoint unavailable — will try again on reset */ });
+  }, []);
+
   // Apply level defaults when switching levels
   const applyLevel = useCallback((levelId: number) => {
     const lvl = levels.find(l => l.id === levelId);
@@ -189,7 +210,7 @@ export default function Home() {
         fetchOptions.body = body;
       }
 
-      const res = await fetch(resolvedUrl, fetchOptions);
+      const res = await mockFetch(resolvedUrl, fetchOptions);
       const elapsed = Date.now() - start;
 
       const resHeaders: Record<string, string> = {};
@@ -262,7 +283,16 @@ export default function Home() {
 
   const handleReset = useCallback(async () => {
     try {
-      await fetch('/api/reset', { method: 'POST' });
+      const res = await fetch('/api/seed-data');
+      const seed = await res.json();
+      setMockData({
+        users: seed.users,
+        products: seed.products,
+        orders: seed.orders,
+        nextUserId: Math.max(0, ...seed.users.map((u: { id: number }) => u.id)) + 1,
+        nextProductId: Math.max(0, ...seed.products.map((p: { id: number }) => p.id)) + 1,
+        nextOrderId: Math.max(0, ...seed.orders.map((o: { id: number }) => o.id)) + 1,
+      });
       setRefreshToken(t => t + 1);
     } catch {}
   }, []);
@@ -454,6 +484,7 @@ export default function Home() {
       <DataExplorer
         open={explorerOpen}
         onClose={() => setExplorerOpen(false)}
+        onReset={handleReset}
         refreshToken={refreshToken}
       />
     </div>

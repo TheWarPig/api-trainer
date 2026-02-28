@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { User, Product, Order } from '@/lib/store';
+import { getMockData } from '@/lib/mock-storage';
 
 interface AllData {
   users:    User[];
@@ -12,6 +13,7 @@ interface AllData {
 interface DataExplorerProps {
   open: boolean;
   onClose: () => void;
+  onReset: () => Promise<void>;
   /** Bump this to trigger a refresh from outside (e.g. after every Send) */
   refreshToken: number;
 }
@@ -39,32 +41,37 @@ function Cell({ value }: { value: unknown }) {
   return <span className="text-[var(--color-json-string)]">{String(value)}</span>;
 }
 
-export default function DataExplorer({ open, onClose, refreshToken }: DataExplorerProps) {
-  const [data,    setData]    = useState<AllData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState('');
-  const [table,   setTable]   = useState<Table>('users');
+export default function DataExplorer({ open, onClose, onReset, refreshToken }: DataExplorerProps) {
+  const [table, setTable] = useState<Table>('users');
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch('/api/admin/data');
-      const json = await res.json() as AllData;
-      setData(json);
-    } catch {
-      setError('Failed to load data.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [spinning, setSpinning] = useState(false);
+  const stopAfterRender = useRef(false);
 
-  // Fetch on open and whenever refreshToken changes
+  // Stop spinner after the re-render caused by refreshToken change
   useEffect(() => {
-    if (open) fetchData();
-  }, [open, refreshToken, fetchData]);
+    if (stopAfterRender.current) {
+      stopAfterRender.current = false;
+      setSpinning(false);
+    }
+  }, [refreshToken]);
+
+  const handleReset = useCallback(async () => {
+    setSpinning(true);
+    await onReset();
+    // Data is now in localStorage; refreshToken will bump and trigger a re-render.
+    // Stop the spinner only after that re-render completes.
+    stopAfterRender.current = true;
+  }, [onReset]);
 
   if (!open) return null;
+
+  // ── Direct synchronous read from localStorage on every render ──
+  // Re-runs whenever: parent re-renders (refreshToken change), Refresh button (tick), open toggle
+  void refreshToken; // used implicitly — parent re-render triggers this read
+  const mockData = getMockData();
+  const data: AllData | null = mockData
+    ? { users: mockData.users, products: mockData.products, orders: mockData.orders }
+    : null;
 
   const rows    = data ? data[table] : [];
   const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
@@ -89,7 +96,7 @@ export default function DataExplorer({ open, onClose, refreshToken }: DataExplor
               d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
           </svg>
           <span className="text-sm font-semibold text-[var(--color-text-primary)]">Mock Database</span>
-          <span className="text-xs text-[var(--color-text-dimmed)]">Live view of server-side data</span>
+          <span className="text-xs text-[var(--color-text-dimmed)]">Live view of browser-side data</span>
 
           {/* Table tabs */}
           <div className="flex gap-1 ml-4">
@@ -120,17 +127,17 @@ export default function DataExplorer({ open, onClose, refreshToken }: DataExplor
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Refresh */}
+          {/* Reset */}
           <button
-            onClick={fetchData}
-            disabled={loading}
+            onClick={handleReset}
+            disabled={spinning}
             className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors px-2 py-1 rounded hover:bg-[var(--color-hover-overlay)] disabled:opacity-50"
           >
-            <svg className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className={`w-3.5 h-3.5 transition-transform ${spinning ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
-            Refresh
+            Reset Mock Data
           </button>
 
           {/* Close */}
@@ -146,19 +153,9 @@ export default function DataExplorer({ open, onClose, refreshToken }: DataExplor
 
         {/* Table area */}
         <div className="flex-1 overflow-auto">
-          {error && (
-            <div className="flex items-center gap-2 m-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-400">
-              {error}
-            </div>
-          )}
-
-          {!error && loading && !data && (
-            <div className="flex items-center justify-center h-full gap-2 text-[var(--color-text-dimmed)] text-sm">
-              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-              </svg>
-              Loading…
+          {!data && (
+            <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-faint)] gap-2">
+              <p className="text-sm">No mock data found. Click <strong>Reset Mock Data</strong> to load initial data.</p>
             </div>
           )}
 
@@ -206,7 +203,7 @@ export default function DataExplorer({ open, onClose, refreshToken }: DataExplor
             </span>
             <span className="text-[var(--color-text-faint)]">·</span>
             <span className="text-[11px] text-[var(--color-text-faint)]">
-              Data resets each time the server restarts or you click <span className="text-[var(--color-text-muted)]">Reset Mock Data</span>
+              Data is stored in your browser. Click <span className="text-[var(--color-text-muted)]">Reset Mock Data</span> to restore original values
             </span>
           </div>
         )}
