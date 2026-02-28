@@ -33,7 +33,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
   try {
     const body = await request.json();
-    const { id: _id, ...updateData } = body;
+    const { id: _id, sortOrder: _so, ...updateData } = body;
     const updated = { ...level, ...updateData, id };
     await upsertLevel(updated);
     return NextResponse.json(updated);

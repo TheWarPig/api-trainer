@@ -306,7 +306,19 @@ export default function RequestBuilder({
             <textarea
               value={body}
               onChange={e => { onBodyChange(e.target.value); validateBody(e.target.value); }}
-              placeholder='{\n  "key": "value"\n}'
+              onKeyDown={e => {
+                if (e.key === 'Tab') {
+                  e.preventDefault();
+                  const ta = e.currentTarget;
+                  const start = ta.selectionStart;
+                  const end = ta.selectionEnd;
+                  const newVal = body.substring(0, start) + '  ' + body.substring(end);
+                  onBodyChange(newVal);
+                  validateBody(newVal);
+                  requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = start + 2; });
+                }
+              }}
+              placeholder='{  "key": "value"  }'
               spellCheck={false}
               className={`
                 flex-1 min-h-[120px] px-3 py-2 bg-[var(--color-bg-deepest)] border rounded text-xs font-mono text-[var(--color-text-secondary)]

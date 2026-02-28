@@ -199,7 +199,24 @@ export default function LevelEditor({ level: initial, onSave, onCancel, isNew }:
               </div>
               <div>
                 <label className={labelClass}>Default Body (JSON)</label>
-                <textarea className={`${textareaClass} font-mono text-xs`} value={data.defaultBody || ''} onChange={e => patch({ defaultBody: e.target.value })} placeholder='{"key": "value"}' rows={6} />
+                <textarea
+                  className={`${textareaClass} font-mono text-xs`}
+                  value={data.defaultBody || ''}
+                  onChange={e => patch({ defaultBody: e.target.value })}
+                  onKeyDown={e => {
+                    if (e.key === 'Tab') {
+                      e.preventDefault();
+                      const ta = e.currentTarget;
+                      const start = ta.selectionStart;
+                      const end = ta.selectionEnd;
+                      const val = data.defaultBody || '';
+                      patch({ defaultBody: val.substring(0, start) + '  ' + val.substring(end) });
+                      requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = start + 2; });
+                    }
+                  }}
+                  placeholder='{"key": "value"}'
+                  rows={6}
+                />
               </div>
             </div>
           )}
@@ -235,11 +252,23 @@ export default function LevelEditor({ level: initial, onSave, onCancel, isNew }:
                       />
                       Requires Auth
                     </label>
-                    <input
-                      className={`${inputClass} flex-1`}
+                    <textarea
+                      className={`${textareaClass} font-mono text-xs flex-1`}
                       value={ep.exampleBody || ''}
                       onChange={e => updateEndpoint(i, 'exampleBody', e.target.value)}
-                      placeholder="Example body (optional)"
+                      onKeyDown={e => {
+                        if (e.key === 'Tab') {
+                          e.preventDefault();
+                          const ta = e.currentTarget;
+                          const start = ta.selectionStart;
+                          const end = ta.selectionEnd;
+                          const val = ep.exampleBody || '';
+                          updateEndpoint(i, 'exampleBody', val.substring(0, start) + '  ' + val.substring(end));
+                          requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = start + 2; });
+                        }
+                      }}
+                      placeholder='{"key": "value"}'
+                      rows={3}
                     />
                   </div>
                 </div>

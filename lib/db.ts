@@ -3,7 +3,7 @@ import { levels as builtinLevels } from './levels';
 import { builtinValidationMap } from './builtin-validation-map';
 import type { SerializableLevel } from './types';
 
-const sql = neon();
+const sql = neon({ fetchOptions: { cache: 'no-store' } });
 
 let initPromise: Promise<void> | null = null;
 
