@@ -284,14 +284,14 @@ export default function Home() {
 
   if (!levelsLoaded) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[var(--color-bg-deepest)]">
+      <div className="flex items-center justify-center h-full bg-[var(--color-bg-deepest)]">
         <div className="text-[var(--color-text-dimmed)] text-sm">Loading levels...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[var(--color-bg-deepest)]">
+    <div className="flex flex-col h-full overflow-hidden bg-[var(--color-bg-deepest)]">
       {/* ── Top Header ── */}
       <header className="flex items-center gap-4 px-4 py-2.5 bg-[var(--color-bg-surface)] border-b border-[var(--color-border-primary)] shrink-0 z-10">
         {/* Logo */}

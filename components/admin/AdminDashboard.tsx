@@ -163,9 +163,9 @@ export default function AdminDashboard({ token, onLogout }: AdminDashboardProps)
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-deepest)]">
+    <div className="flex flex-col h-full bg-[var(--color-bg-deepest)]">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-[var(--color-bg-surface)] border-b border-[var(--color-border-primary)]">
+      <header className="flex items-center justify-between px-6 py-4 bg-[var(--color-bg-surface)] border-b border-[var(--color-border-primary)] shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-md bg-[#FF6C37] flex items-center justify-center">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -217,7 +217,7 @@ export default function AdminDashboard({ token, onLogout }: AdminDashboardProps)
 
       {/* Level table */}
       {!loading && (
-        <div className="px-6 py-4">
+        <div className="px-6 py-4 flex-1 overflow-y-auto">
           <div className="rounded-lg border border-[var(--color-border-primary)] overflow-hidden">
             <table className="w-full text-sm">
               <thead>

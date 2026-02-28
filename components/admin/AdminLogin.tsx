@@ -40,7 +40,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-deepest)]">
+    <div className="min-h-full flex items-center justify-center bg-[var(--color-bg-deepest)]">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-sm p-8 bg-[var(--color-bg-surface)] rounded-lg border border-[var(--color-border-primary)]"

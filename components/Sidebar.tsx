@@ -35,7 +35,7 @@ export default function Sidebar({ levels, currentLevel, completedLevels, onSelec
   const completed = completedLevels.size;
 
   return (
-    <aside className="flex flex-col w-56 shrink-0 bg-[var(--color-bg-surface)] border-r border-[var(--color-border-primary)] overflow-hidden">
+    <aside className="flex flex-col w-56 shrink-0 bg-[var(--color-bg-surface)] border-r border-[var(--color-border-primary)] min-h-0">
       {/* Header */}
       <div className="px-4 py-4 border-b border-[var(--color-border-primary)]">
         <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-dimmed)] mb-1">Progress</div>
@@ -105,7 +105,7 @@ export default function Sidebar({ levels, currentLevel, completedLevels, onSelec
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-[var(--color-border-primary)]">
+      <div className="px-4 py-3 border-t border-[var(--color-border-primary)] shrink-0">
         <div className="text-[10px] text-[var(--color-text-faint)] text-center">
           API Trainer · QA Edition
         </div>
