@@ -74,6 +74,7 @@ function toLevel(sl: SerializableLevel): Level {
 export default function Home() {
   const [levels, setLevels] = useState<Level[]>([]);
   const [levelsLoaded, setLevelsLoaded] = useState(false);
+  const [levelsError, setLevelsError] = useState('');
   const [currentLevel, setCurrentLevel] = useState(0);
   const [completedLevels, setCompletedLevels] = useState<Set<number>>(new Set());
   const [justCompleted, setJustCompleted] = useState<Set<number>>(new Set());
@@ -130,20 +131,21 @@ export default function Home() {
   // Fetch levels from API
   useEffect(() => {
     fetch('/api/levels')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        return res.json();
+      })
       .then((data: SerializableLevel[]) => {
-        if (Array.isArray(data) && data.length > 0) {
-          const mapped = data.map(toLevel);
-          setLevels(mapped);
-          setCurrentLevel(mapped[0].id);
-        } else {
-          setLevels(builtinLevels);
-          setCurrentLevel(builtinLevels[0].id);
+        if (!Array.isArray(data) || data.length === 0) {
+          setLevelsError('No levels found.');
+          return;
         }
+        const mapped = data.map(toLevel);
+        setLevels(mapped);
+        setCurrentLevel(mapped[0].id);
       })
       .catch(() => {
-        setLevels(builtinLevels);
-        setCurrentLevel(builtinLevels[0].id);
+        setLevelsError('Failed to load levels');
       })
       .finally(() => {
         setLevelsLoaded(true);
@@ -316,6 +318,16 @@ export default function Home() {
     return (
       <div className="flex items-center justify-center h-full bg-[var(--color-bg-deepest)]">
         <div className="text-[var(--color-text-dimmed)] text-sm">Loading levels...</div>
+      </div>
+    );
+  }
+
+  if (levelsError) {
+    return (
+      <div className="flex items-center justify-center h-full bg-[var(--color-bg-deepest)]">
+        <div className="p-4 rounded bg-red-400/10 border border-red-400/30 text-sm text-red-400">
+          {levelsError}
+        </div>
       </div>
     );
   }
