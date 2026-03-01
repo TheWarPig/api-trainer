@@ -162,9 +162,15 @@ export default function Home() {
           users: seed.users,
           products: seed.products,
           orders: seed.orders,
+          categories: seed.categories ?? [],
+          reviews: seed.reviews ?? [],
+          coupons: seed.coupons ?? [],
           nextUserId: Math.max(0, ...seed.users.map((u: { id: number }) => u.id)) + 1,
           nextProductId: Math.max(0, ...seed.products.map((p: { id: number }) => p.id)) + 1,
           nextOrderId: Math.max(0, ...seed.orders.map((o: { id: number }) => o.id)) + 1,
+          nextCategoryId: Math.max(0, ...(seed.categories ?? []).map((c: { id: number }) => c.id)) + 1,
+          nextReviewId: Math.max(0, ...(seed.reviews ?? []).map((r: { id: number }) => r.id)) + 1,
+          nextCouponId: Math.max(0, ...(seed.coupons ?? []).map((c: { id: number }) => c.id)) + 1,
         });
         setRefreshToken(t => t + 1);
       })
@@ -175,10 +181,14 @@ export default function Home() {
   const applyLevel = useCallback((levelId: number) => {
     const lvl = levels.find(l => l.id === levelId);
     if (!lvl) return;
-    setMethod('GET');
-    setUrl('');
-    setHeaders([{ key: '', value: '', enabled: true }]);
-    setBody('');
+    setMethod(lvl.defaultMethod || 'GET');
+    setUrl(lvl.defaultUrl || '');
+    setHeaders(
+      lvl.defaultHeaders && lvl.defaultHeaders.length > 0
+        ? lvl.defaultHeaders.map(h => ({ key: h.key, value: h.value, enabled: true }))
+        : [{ key: '', value: '', enabled: true }]
+    );
+    setBody(lvl.defaultBody || '');
     setResponse(null);
     setSendError('');
   }, [levels]);
@@ -194,9 +204,10 @@ export default function Home() {
     setIsLoading(true);
     setSendError('');
 
-    const resolvedUrl = url.startsWith('http')
-      ? url
-      : `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`;
+    const trimmedUrl = url.trim();
+    const resolvedUrl = trimmedUrl.startsWith('http')
+      ? trimmedUrl
+      : `${window.location.origin}${trimmedUrl.startsWith('/') ? '' : '/'}${trimmedUrl}`;
 
     const reqHeaders = buildHeaders(headers);
     const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
@@ -291,9 +302,15 @@ export default function Home() {
         users: seed.users,
         products: seed.products,
         orders: seed.orders,
+        categories: seed.categories ?? [],
+        reviews: seed.reviews ?? [],
+        coupons: seed.coupons ?? [],
         nextUserId: Math.max(0, ...seed.users.map((u: { id: number }) => u.id)) + 1,
         nextProductId: Math.max(0, ...seed.products.map((p: { id: number }) => p.id)) + 1,
         nextOrderId: Math.max(0, ...seed.orders.map((o: { id: number }) => o.id)) + 1,
+        nextCategoryId: Math.max(0, ...(seed.categories ?? []).map((c: { id: number }) => c.id)) + 1,
+        nextReviewId: Math.max(0, ...(seed.reviews ?? []).map((r: { id: number }) => r.id)) + 1,
+        nextCouponId: Math.max(0, ...(seed.coupons ?? []).map((c: { id: number }) => c.id)) + 1,
       });
       setRefreshToken(t => t + 1);
     } catch {}

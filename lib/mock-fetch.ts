@@ -146,6 +146,11 @@ function handleUsers(url: URL, method: string, init?: RequestInit): Response | n
 function handleProducts(url: URL, method: string, init?: RequestInit): Response | null {
   const headers = headersToRecord(init);
 
+  // /api/products/:id/reviews — handled by handleReviews, so skip here
+  if (url.pathname.match(/^\/api\/products\/\d+\/reviews$/)) {
+    return null;
+  }
+
   // /api/products/:id
   const idMatch = url.pathname.match(/^\/api\/products\/(\d+)$/);
   if (idMatch) {
@@ -231,12 +236,221 @@ function handleProducts(url: URL, method: string, init?: RequestInit): Response 
   return null;
 }
 
+function handleCategories(url: URL, method: string, init?: RequestInit): Response | null {
+  // /api/categories/:id
+  const idMatch = url.pathname.match(/^\/api\/categories\/(\d+)$/);
+  if (idMatch) {
+    const id = parseInt(idMatch[1], 10);
+
+    if (method === 'GET') {
+      return withData(data => {
+        const category = data.categories.find(c => c.id === id);
+        if (!category) return json({ error: `Category with id ${id} not found.` }, 404);
+        return json(category);
+      });
+    }
+
+    if (method === 'PUT') {
+      const body = parseBody(init);
+      if (!body) return json({ error: 'Invalid JSON body.' }, 400);
+      return mutate(data => {
+        const index = data.categories.findIndex(c => c.id === id);
+        if (index === -1) return json({ error: `Category with id ${id} not found.` }, 404);
+        const updated = { ...data.categories[index], ...body, id };
+        data.categories[index] = updated as typeof data.categories[0];
+        return json(updated);
+      });
+    }
+
+    if (method === 'DELETE') {
+      return mutate(data => {
+        const index = data.categories.findIndex(c => c.id === id);
+        if (index === -1) return json({ error: `Category with id ${id} not found.` }, 404);
+        data.categories.splice(index, 1);
+        return json({ message: `Category ${id} deleted successfully.`, id });
+      });
+    }
+
+    return json({ error: 'Method not allowed' }, 405);
+  }
+
+  // /api/categories
+  if (url.pathname === '/api/categories') {
+    if (method === 'GET') {
+      const name = url.searchParams.get('name');
+      return withData(data => {
+        let categories = [...data.categories];
+        if (name) categories = categories.filter(c => c.name.toLowerCase().includes(name.toLowerCase()));
+        return json(categories);
+      });
+    }
+
+    if (method === 'POST') {
+      const body = parseBody(init);
+      if (!body) return json({ error: 'Invalid JSON body.' }, 400);
+      const { name, description } = body as { name?: string; description?: string };
+      if (!name) return json({ error: 'Missing required field: name' }, 400);
+      return mutate(data => {
+        const slug = String(name).toLowerCase().replace(/\s+/g, '-');
+        const newCategory = {
+          id: data.nextCategoryId++,
+          name: String(name),
+          description: String(description || ''),
+          slug,
+          createdAt: new Date().toISOString(),
+        };
+        data.categories.push(newCategory);
+        return json(newCategory, 201);
+      });
+    }
+
+    return json({ error: 'Method not allowed' }, 405);
+  }
+
+  return null;
+}
+
+function handleReviews(url: URL, method: string, init?: RequestInit): Response | null {
+  // /api/products/:id/reviews
+  const reviewsMatch = url.pathname.match(/^\/api\/products\/(\d+)\/reviews$/);
+  if (!reviewsMatch) return null;
+
+  const productId = parseInt(reviewsMatch[1], 10);
+
+  if (method === 'GET') {
+    const minRating = url.searchParams.get('min_rating');
+    return withData(data => {
+      let reviews = data.reviews.filter(r => r.productId === productId);
+      if (minRating) {
+        const minR = parseInt(minRating, 10);
+        reviews = reviews.filter(r => r.rating >= minR);
+      }
+      return json(reviews);
+    });
+  }
+
+  if (method === 'POST') {
+    const headers = headersToRecord(init);
+    if (!checkAuth(headers)) {
+      return json({ error: 'Unauthorized. Include Authorization: Bearer secret-token-123 header.' }, 401);
+    }
+    const body = parseBody(init);
+    if (!body) return json({ error: 'Invalid JSON body.' }, 400);
+    const { rating, comment, userId } = body as { rating?: number; comment?: string; userId?: number };
+    if (rating === undefined || !comment) return json({ error: 'Missing required fields: rating, comment' }, 400);
+    const ratingNum = Number(rating);
+    if (ratingNum < 1 || ratingNum > 5) return json({ error: 'Rating must be between 1 and 5.' }, 400);
+    return mutate(data => {
+      const product = data.products.find(p => p.id === productId);
+      if (!product) return json({ error: `Product with id ${productId} not found.` }, 404);
+      const newReview = {
+        id: data.nextReviewId++,
+        productId,
+        userId: typeof userId === 'number' ? userId : 1,
+        rating: ratingNum,
+        comment: String(comment),
+        createdAt: new Date().toISOString(),
+      };
+      data.reviews.push(newReview);
+      return json(newReview, 201);
+    });
+  }
+
+  return json({ error: 'Method not allowed' }, 405);
+}
+
+function handleCoupons(url: URL, method: string, init?: RequestInit): Response | null {
+  const headers = headersToRecord(init);
+
+  // /api/coupons/:id
+  const idMatch = url.pathname.match(/^\/api\/coupons\/(\d+)$/);
+  if (idMatch) {
+    if (!checkAuth(headers)) {
+      return json({ error: 'Unauthorized. Include Authorization: Bearer secret-token-123 header.' }, 401);
+    }
+    const id = parseInt(idMatch[1], 10);
+
+    if (method === 'GET') {
+      return withData(data => {
+        const coupon = data.coupons.find(c => c.id === id);
+        if (!coupon) return json({ error: `Coupon with id ${id} not found.` }, 404);
+        return json(coupon);
+      });
+    }
+
+    if (method === 'PATCH') {
+      const body = parseBody(init);
+      if (!body) return json({ error: 'Invalid JSON body.' }, 400);
+      return mutate(data => {
+        const index = data.coupons.findIndex(c => c.id === id);
+        if (index === -1) return json({ error: `Coupon with id ${id} not found.` }, 404);
+        const updated = { ...data.coupons[index], ...body, id };
+        data.coupons[index] = updated as typeof data.coupons[0];
+        return json(updated);
+      });
+    }
+
+    return json({ error: 'Method not allowed' }, 405);
+  }
+
+  // /api/coupons
+  if (url.pathname === '/api/coupons') {
+    if (!checkAuth(headers)) {
+      return json({ error: 'Unauthorized. Include Authorization: Bearer secret-token-123 header.' }, 401);
+    }
+
+    if (method === 'GET') {
+      const activeParam = url.searchParams.get('active');
+      return withData(data => {
+        let coupons = [...data.coupons];
+        if (activeParam !== null) {
+          const activeVal = activeParam === 'true';
+          coupons = coupons.filter(c => c.active === activeVal);
+        }
+        return json(coupons);
+      });
+    }
+
+    if (method === 'POST') {
+      const body = parseBody(init);
+      if (!body) return json({ error: 'Invalid JSON body.' }, 400);
+      const { code, discount_percent, min_order_amount, active, expires_at } = body as {
+        code?: string;
+        discount_percent?: number;
+        min_order_amount?: number;
+        active?: boolean;
+        expires_at?: string;
+      };
+      if (!code || discount_percent === undefined) return json({ error: 'Missing required fields: code, discount_percent' }, 400);
+      return mutate(data => {
+        const newCoupon = {
+          id: data.nextCouponId++,
+          code: String(code),
+          discountPercent: Number(discount_percent),
+          minOrderAmount: typeof min_order_amount === 'number' ? min_order_amount : 0,
+          active: typeof active === 'boolean' ? active : true,
+          expiresAt: String(expires_at || ''),
+        };
+        data.coupons.push(newCoupon);
+        return json(newCoupon, 201);
+      });
+    }
+
+    return json({ error: 'Method not allowed' }, 405);
+  }
+
+  return null;
+}
+
 function handleAdminData(url: URL, method: string): Response | null {
   if (url.pathname !== '/api/admin/data' || method !== 'GET') return null;
   return withData(data => json({
     users: data.users,
     products: data.products,
     orders: data.orders,
+    categories: data.categories,
+    reviews: data.reviews,
+    coupons: data.coupons,
   }));
 }
 
@@ -251,9 +465,15 @@ async function handleReset(url: URL, method: string): Promise<Response | null> {
       users: seed.users,
       products: seed.products,
       orders: seed.orders,
+      categories: seed.categories,
+      reviews: seed.reviews,
+      coupons: seed.coupons,
       nextUserId: Math.max(0, ...seed.users.map((u: { id: number }) => u.id)) + 1,
       nextProductId: Math.max(0, ...seed.products.map((p: { id: number }) => p.id)) + 1,
       nextOrderId: Math.max(0, ...seed.orders.map((o: { id: number }) => o.id)) + 1,
+      nextCategoryId: Math.max(0, ...seed.categories.map((c: { id: number }) => c.id)) + 1,
+      nextReviewId: Math.max(0, ...seed.reviews.map((r: { id: number }) => r.id)) + 1,
+      nextCouponId: Math.max(0, ...seed.coupons.map((c: { id: number }) => c.id)) + 1,
     });
     return json({ message: 'Data reset to initial state.' });
   } catch {
@@ -272,6 +492,9 @@ export async function mockFetch(input: RequestInfo | URL, init?: RequestInit): P
   const result =
     handleUsers(url, method, init) ??
     handleProducts(url, method, init) ??
+    handleCategories(url, method, init) ??
+    handleReviews(url, method, init) ??
+    handleCoupons(url, method, init) ??
     handleAdminData(url, method);
 
   if (result) return result;

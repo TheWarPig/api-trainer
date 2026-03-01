@@ -3,6 +3,8 @@ import { checkAuth } from '@/lib/admin-auth';
 import { getAllLevels, upsertLevel, getNextCustomId } from '@/lib/level-storage';
 import type { SerializableLevel } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   if (!checkAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

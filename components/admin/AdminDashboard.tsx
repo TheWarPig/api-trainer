@@ -302,6 +302,7 @@ export default function AdminDashboard({ token, onLogout }: AdminDashboardProps)
       {/* Editor modal */}
       {editing && !saving && (
         <LevelEditor
+          key={editing.id ?? 'new'}
           level={editing}
           isNew={isNew}
           onSave={handleSave}

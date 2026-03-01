@@ -5,8 +5,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   return NextResponse.json({
-    users:    db.users,
-    products: db.products,
-    orders:   db.orders,
+    users:      db.users,
+    products:   db.products,
+    orders:     db.orders,
+    categories: db.categories,
+    reviews:    db.reviews,
+    coupons:    db.coupons,
   });
 }

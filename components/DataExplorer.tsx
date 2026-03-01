@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { User, Product, Order } from '@/lib/store';
+import type { User, Product, Order, Category, Review, Coupon } from '@/lib/store';
 import { getMockData } from '@/lib/mock-storage';
 
 interface AllData {
-  users:    User[];
-  products: Product[];
-  orders:   Order[];
+  users:      User[];
+  products:   Product[];
+  orders:     Order[];
+  categories: Category[];
+  reviews:    Review[];
+  coupons:    Coupon[];
 }
 
 interface DataExplorerProps {
@@ -18,12 +21,15 @@ interface DataExplorerProps {
   refreshToken: number;
 }
 
-type Table = 'users' | 'products' | 'orders';
+type Table = 'users' | 'products' | 'orders' | 'categories' | 'reviews' | 'coupons';
 
 const TABLE_ICONS: Record<Table, string> = {
-  users:    '👤',
-  products: '📦',
-  orders:   '🛒',
+  users:      '👤',
+  products:   '📦',
+  orders:     '🛒',
+  categories: '🏷️',
+  reviews:    '⭐',
+  coupons:    '🎟️',
 };
 
 /* ── tiny helper: render a cell value nicely ── */
@@ -70,7 +76,14 @@ export default function DataExplorer({ open, onClose, onReset, refreshToken }: D
   void refreshToken; // used implicitly — parent re-render triggers this read
   const mockData = getMockData();
   const data: AllData | null = mockData
-    ? { users: mockData.users, products: mockData.products, orders: mockData.orders }
+    ? {
+        users:      mockData.users,
+        products:   mockData.products,
+        orders:     mockData.orders,
+        categories: mockData.categories ?? [],
+        reviews:    mockData.reviews    ?? [],
+        coupons:    mockData.coupons    ?? [],
+      }
     : null;
 
   const rows    = data ? data[table] : [];
@@ -100,7 +113,7 @@ export default function DataExplorer({ open, onClose, onReset, refreshToken }: D
 
           {/* Table tabs */}
           <div className="flex gap-1 ml-4">
-            {(['users', 'products', 'orders'] as Table[]).map(t => (
+            {(['users', 'products', 'orders', 'categories', 'reviews', 'coupons'] as Table[]).map(t => (
               <button
                 key={t}
                 onClick={() => setTable(t)}

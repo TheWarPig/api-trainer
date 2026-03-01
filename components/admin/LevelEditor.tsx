@@ -231,17 +231,19 @@ export default function LevelEditor({ level: initial, onSave, onCancel, isNew }:
               {(data.endpoints || []).map((ep, i) => (
                 <div key={i} className="p-3 rounded border border-[var(--color-border-secondary)] bg-[var(--color-bg-panel)] space-y-2">
                   <div className="flex gap-2">
-                    <select
-                      className={`${inputClass} w-24 shrink-0`}
-                      value={ep.method}
-                      onChange={e => updateEndpoint(i, 'method', e.target.value)}
-                    >
-                      {METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                    <input className={`${inputClass} flex-1 min-w-0`} value={ep.path} onChange={e => updateEndpoint(i, 'path', e.target.value)} placeholder="/api/..." />
+                    <div className="w-24 shrink-0">
+                      <select
+                        className={inputClass}
+                        value={ep.method}
+                        onChange={e => updateEndpoint(i, 'method', e.target.value)}
+                      >
+                        {METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                    <input className={`${inputClass} flex-1 min-w-0`} value={ep.path ?? ''} onChange={e => updateEndpoint(i, 'path', e.target.value)} placeholder="/api/..." />
                     <button type="button" onClick={() => removeEndpoint(i)} className="text-xs text-red-400 hover:text-red-300 px-2">✕</button>
                   </div>
-                  <input className={inputClass} value={ep.description} onChange={e => updateEndpoint(i, 'description', e.target.value)} placeholder="Description" />
+                  <input className={inputClass} value={ep.description ?? ''} onChange={e => updateEndpoint(i, 'description', e.target.value)} placeholder="Description" />
                   <div className="flex items-center gap-4">
                     <label className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
                       <input

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkAuth } from '@/lib/admin-auth';
+
+export const dynamic = 'force-dynamic';
 import { getLevelById, upsertLevel, deleteLevel, getAllLevels, updateSortOrders } from '@/lib/level-storage';
 import { levels as builtinLevels } from '@/lib/levels';
 import { builtinValidationMap } from '@/lib/builtin-validation-map';

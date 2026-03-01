@@ -45,6 +45,7 @@ const METHOD_STYLE: Record<string, { bg: string; text: string; border: string }>
   GET:    { bg: 'bg-[#61AFFE]/10', text: 'text-[#61AFFE]', border: 'border-[#61AFFE]/30' },
   POST:   { bg: 'bg-[#49CC90]/10', text: 'text-[#49CC90]', border: 'border-[#49CC90]/30' },
   PUT:    { bg: 'bg-[#FCA130]/10', text: 'text-[#FCA130]', border: 'border-[#FCA130]/30' },
+  PATCH:  { bg: 'bg-[#50E3C2]/10', text: 'text-[#50E3C2]', border: 'border-[#50E3C2]/30' },
   DELETE: { bg: 'bg-[#F93E3E]/10', text: 'text-[#F93E3E]', border: 'border-[#F93E3E]/30' },
 };
 
@@ -355,6 +356,308 @@ const API_SECTIONS: Section[] = [
       },
     ],
   },
+  {
+    name: 'Categories',
+    description: 'Manage product categories. No authentication required — all endpoints are publicly accessible.',
+    color: 'text-teal-400',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/api/categories',
+        summary: 'List all categories',
+        description: 'Returns an array of all product categories. Supports optional filtering by name using a partial, case-insensitive match.',
+        requiresAuth: false,
+        params: [
+          { name: 'name', in: 'query', required: false, type: 'string', description: 'Filter categories by name (partial, case-insensitive)', example: 'Elec' },
+        ],
+        responses: {
+          success: {
+            code: 200,
+            description: 'Array of category objects',
+            example: JSON.stringify([
+              { id: 1, name: 'Electronics', description: 'Gadgets, devices and accessories', slug: 'electronics', createdAt: '2024-01-01T00:00:00Z' },
+              { id: 2, name: 'Books', description: 'Physical and digital books', slug: 'books', createdAt: '2024-01-01T00:00:00Z' },
+            ], null, 2),
+          },
+          errors: [],
+        },
+      },
+      {
+        method: 'GET',
+        path: '/api/categories/:id',
+        summary: 'Get a category by ID',
+        description: 'Returns a single category object matching the given ID.',
+        requiresAuth: false,
+        params: [
+          { name: 'id', in: 'path', required: true, type: 'integer', description: 'The unique category ID', example: '1' },
+        ],
+        responses: {
+          success: {
+            code: 200,
+            description: 'A single category object',
+            example: JSON.stringify({ id: 1, name: 'Electronics', description: 'Gadgets, devices and accessories', slug: 'electronics', createdAt: '2024-01-01T00:00:00Z' }, null, 2),
+          },
+          errors: [
+            { code: 404, description: 'Not Found — no category with the given ID' },
+          ],
+        },
+      },
+      {
+        method: 'POST',
+        path: '/api/categories',
+        summary: 'Create a new category',
+        description: 'Creates a new product category. The slug is auto-generated from the name. No authentication required.',
+        requiresAuth: false,
+        requestBody: {
+          description: 'Category data',
+          schema: {
+            name:        { type: 'string', required: true,  description: 'Category name', example: 'Gaming' },
+            description: { type: 'string', required: false, description: 'Short description of the category', example: 'Gaming peripherals and accessories' },
+          },
+          example: JSON.stringify({ name: 'Gaming', description: 'Gaming peripherals and accessories' }, null, 2),
+        },
+        responses: {
+          success: {
+            code: 201,
+            description: 'The newly created category object',
+            example: JSON.stringify({ id: 6, name: 'Gaming', description: 'Gaming peripherals and accessories', slug: 'gaming', createdAt: '2024-05-01T12:00:00Z' }, null, 2),
+          },
+          errors: [
+            { code: 400, description: 'Bad Request — missing required field: name' },
+          ],
+        },
+      },
+      {
+        method: 'PUT',
+        path: '/api/categories/:id',
+        summary: 'Update a category',
+        description: 'Updates fields on an existing category. Send only the fields you want to change.',
+        requiresAuth: false,
+        params: [
+          { name: 'id', in: 'path', required: true, type: 'integer', description: 'The ID of the category to update', example: '1' },
+        ],
+        requestBody: {
+          description: 'Fields to update',
+          schema: {
+            name:        { type: 'string', required: false, description: 'New name' },
+            description: { type: 'string', required: false, description: 'New description' },
+          },
+          example: JSON.stringify({ description: 'Updated description' }, null, 2),
+        },
+        responses: {
+          success: {
+            code: 200,
+            description: 'The updated category object',
+            example: JSON.stringify({ id: 1, name: 'Electronics', description: 'Updated description', slug: 'electronics', createdAt: '2024-01-01T00:00:00Z' }, null, 2),
+          },
+          errors: [
+            { code: 400, description: 'Bad Request — invalid JSON body' },
+            { code: 404, description: 'Not Found — no category with the given ID' },
+          ],
+        },
+      },
+      {
+        method: 'DELETE',
+        path: '/api/categories/:id',
+        summary: 'Delete a category',
+        description: 'Permanently removes a category. No request body needed.',
+        requiresAuth: false,
+        params: [
+          { name: 'id', in: 'path', required: true, type: 'integer', description: 'The ID of the category to delete', example: '1' },
+        ],
+        responses: {
+          success: {
+            code: 200,
+            description: 'Confirmation with deleted category ID',
+            example: JSON.stringify({ message: 'Category 1 deleted successfully.', id: 1 }, null, 2),
+          },
+          errors: [
+            { code: 404, description: 'Not Found — no category with the given ID' },
+          ],
+        },
+      },
+    ],
+  },
+  {
+    name: 'Reviews',
+    description: 'Product reviews are nested under products. Reading reviews requires no auth; posting a review requires a Bearer token.',
+    color: 'text-yellow-400',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/api/products/:id/reviews',
+        summary: 'List reviews for a product',
+        description: 'Returns all reviews for the specified product. Supports optional minimum rating filter. No authentication required.',
+        requiresAuth: false,
+        params: [
+          { name: 'id', in: 'path', required: true, type: 'integer', description: 'The product ID to get reviews for', example: '1' },
+          { name: 'min_rating', in: 'query', required: false, type: 'integer', description: 'Return only reviews with rating ≥ this value (1–5)', example: '4' },
+        ],
+        responses: {
+          success: {
+            code: 200,
+            description: 'Array of review objects for the product (may be empty)',
+            example: JSON.stringify([
+              { id: 1, productId: 1, userId: 2, rating: 5, comment: 'Amazing sound quality!', createdAt: '2024-02-05T00:00:00Z' },
+              { id: 2, productId: 1, userId: 3, rating: 4, comment: 'Great headphones, solid battery.', createdAt: '2024-02-10T00:00:00Z' },
+            ], null, 2),
+          },
+          errors: [
+            { code: 404, description: 'Not Found — no product with the given ID' },
+          ],
+        },
+      },
+      {
+        method: 'POST',
+        path: '/api/products/:id/reviews',
+        summary: 'Post a review',
+        description: 'Adds a review for the specified product. Requires authentication. The userId is not required in the body — it can be any valid user.',
+        requiresAuth: true,
+        params: [
+          { name: 'Authorization', in: 'header', required: true, type: 'string', description: 'Bearer token', example: 'Bearer secret-token-123' },
+          { name: 'id', in: 'path', required: true, type: 'integer', description: 'The product ID to review', example: '1' },
+        ],
+        requestBody: {
+          description: 'Review data',
+          schema: {
+            rating:  { type: 'integer', required: true,  description: 'Rating from 1 (worst) to 5 (best)', example: 5 },
+            comment: { type: 'string',  required: true,  description: 'Written review text', example: 'Excellent product!' },
+            userId:  { type: 'integer', required: false, description: 'ID of the reviewing user. Defaults to 1', example: 1 },
+          },
+          example: JSON.stringify({ rating: 5, comment: 'Excellent product!', userId: 1 }, null, 2),
+        },
+        responses: {
+          success: {
+            code: 201,
+            description: 'The newly created review object',
+            example: JSON.stringify({ id: 8, productId: 1, userId: 1, rating: 5, comment: 'Excellent product!', createdAt: '2024-05-01T12:00:00Z' }, null, 2),
+          },
+          errors: [
+            { code: 400, description: 'Bad Request — missing required fields (rating, comment) or invalid rating range' },
+            { code: 401, description: 'Unauthorized — missing or invalid token' },
+            { code: 404, description: 'Not Found — no product with the given ID' },
+          ],
+        },
+      },
+    ],
+  },
+  {
+    name: 'Coupons',
+    description: 'Manage discount coupons. All coupon endpoints require a Bearer token in the Authorization header.',
+    color: 'text-purple-400',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/api/coupons',
+        summary: 'List all coupons',
+        description: 'Returns an array of all coupons. Supports optional filtering by active status. Requires authentication.',
+        requiresAuth: true,
+        params: [
+          { name: 'Authorization', in: 'header', required: true, type: 'string', description: 'Bearer token', example: 'Bearer secret-token-123' },
+          { name: 'active', in: 'query', required: false, type: 'boolean', description: 'Filter by active status (true or false)', example: 'true' },
+        ],
+        responses: {
+          success: {
+            code: 200,
+            description: 'Array of coupon objects',
+            example: JSON.stringify([
+              { id: 1, code: 'SAVE10', discountPercent: 10, minOrderAmount: 0, active: true, expiresAt: '2025-12-31T23:59:59Z' },
+              { id: 2, code: 'SUMMER25', discountPercent: 25, minOrderAmount: 50, active: true, expiresAt: '2025-08-31T23:59:59Z' },
+            ], null, 2),
+          },
+          errors: [
+            { code: 401, description: 'Unauthorized — missing or invalid token' },
+          ],
+        },
+      },
+      {
+        method: 'GET',
+        path: '/api/coupons/:id',
+        summary: 'Get a coupon by ID',
+        description: 'Returns a single coupon matching the given ID. Requires authentication.',
+        requiresAuth: true,
+        params: [
+          { name: 'Authorization', in: 'header', required: true, type: 'string', description: 'Bearer token', example: 'Bearer secret-token-123' },
+          { name: 'id', in: 'path', required: true, type: 'integer', description: 'The unique coupon ID', example: '1' },
+        ],
+        responses: {
+          success: {
+            code: 200,
+            description: 'A single coupon object',
+            example: JSON.stringify({ id: 1, code: 'SAVE10', discountPercent: 10, minOrderAmount: 0, active: true, expiresAt: '2025-12-31T23:59:59Z' }, null, 2),
+          },
+          errors: [
+            { code: 401, description: 'Unauthorized — missing or invalid token' },
+            { code: 404, description: 'Not Found — no coupon with the given ID' },
+          ],
+        },
+      },
+      {
+        method: 'POST',
+        path: '/api/coupons',
+        summary: 'Create a new coupon',
+        description: 'Creates a new discount coupon. Requires authentication.',
+        requiresAuth: true,
+        params: [
+          { name: 'Authorization', in: 'header', required: true, type: 'string', description: 'Bearer token', example: 'Bearer secret-token-123' },
+        ],
+        requestBody: {
+          description: 'Coupon data',
+          schema: {
+            code:             { type: 'string',  required: true,  description: 'Unique coupon code (uppercase recommended)', example: 'NEWDEAL' },
+            discount_percent: { type: 'integer', required: true,  description: 'Discount percentage (1–100)', example: 15 },
+            min_order_amount: { type: 'number',  required: false, description: 'Minimum order total to apply the coupon. Defaults to 0', example: 0 },
+            active:           { type: 'boolean', required: false, description: 'Whether the coupon is active. Defaults to true', example: true },
+            expires_at:       { type: 'string',  required: false, description: 'ISO 8601 expiry date', example: '2025-12-31T23:59:59Z' },
+          },
+          example: JSON.stringify({ code: 'NEWDEAL', discount_percent: 15, min_order_amount: 0, active: true, expires_at: '2025-12-31T23:59:59Z' }, null, 2),
+        },
+        responses: {
+          success: {
+            code: 201,
+            description: 'The newly created coupon object',
+            example: JSON.stringify({ id: 5, code: 'NEWDEAL', discountPercent: 15, minOrderAmount: 0, active: true, expiresAt: '2025-12-31T23:59:59Z' }, null, 2),
+          },
+          errors: [
+            { code: 400, description: 'Bad Request — missing required fields (code, discount_percent)' },
+            { code: 401, description: 'Unauthorized — missing or invalid token' },
+          ],
+        },
+      },
+      {
+        method: 'PATCH',
+        path: '/api/coupons/:id',
+        summary: 'Update a coupon',
+        description: 'Partially updates a coupon — useful for activating/deactivating or changing the discount. Requires authentication.',
+        requiresAuth: true,
+        params: [
+          { name: 'Authorization', in: 'header', required: true, type: 'string', description: 'Bearer token', example: 'Bearer secret-token-123' },
+          { name: 'id', in: 'path', required: true, type: 'integer', description: 'The ID of the coupon to update', example: '4' },
+        ],
+        requestBody: {
+          description: 'Fields to update (all optional)',
+          schema: {
+            active:           { type: 'boolean', required: false, description: 'Activate or deactivate the coupon', example: false },
+            discount_percent: { type: 'integer', required: false, description: 'New discount percentage' },
+            expires_at:       { type: 'string',  required: false, description: 'New expiry date (ISO 8601)' },
+          },
+          example: JSON.stringify({ active: false }, null, 2),
+        },
+        responses: {
+          success: {
+            code: 200,
+            description: 'The updated coupon object',
+            example: JSON.stringify({ id: 4, code: 'VIP20', discountPercent: 20, minOrderAmount: 0, active: false, expiresAt: '2025-12-31T23:59:59Z' }, null, 2),
+          },
+          errors: [
+            { code: 400, description: 'Bad Request — invalid JSON body' },
+            { code: 401, description: 'Unauthorized — missing or invalid token' },
+            { code: 404, description: 'Not Found — no coupon with the given ID' },
+          ],
+        },
+      },
+    ],
+  },
 ];
 
 /* ── Sub-components ── */
@@ -621,7 +924,7 @@ export default function ApiDocs({ open, onClose }: ApiDocsProps) {
             <code className="text-[var(--color-json-number)] font-mono">application/json</code>
           </div>
           <div className="flex items-center gap-4 ml-auto">
-            {['GET', 'POST', 'PUT', 'DELETE'].map(m => {
+            {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => {
               const s = METHOD_STYLE[m];
               return (
                 <span key={m} className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${s.bg} ${s.text} ${s.border}`}>
