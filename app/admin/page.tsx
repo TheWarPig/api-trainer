@@ -8,7 +8,7 @@ export default function AdminPage() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-deepest)]">
+      <div className="flex items-center justify-center bg-[var(--color-bg-deepest)]" style={{ minHeight: 'calc(100vh / 1.25)' }}>
         <div className="text-[var(--color-text-dimmed)] text-sm">Loading...</div>
       </div>
     );
@@ -18,7 +18,7 @@ export default function AdminPage() {
 
   if (role !== 'admin') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-deepest)]">
+      <div className="flex items-center justify-center bg-[var(--color-bg-deepest)]" style={{ minHeight: 'calc(100vh / 1.25)' }}>
         <div className="text-center">
           <h1 className="text-lg font-bold text-[var(--color-text-primary)] mb-2">Access Denied</h1>
           <p className="text-sm text-[var(--color-text-muted)] mb-4">You do not have admin privileges.</p>

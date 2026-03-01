@@ -2,8 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
+body {
   zoom: 1.25;
+  position: relative;
 }
 
 * {
