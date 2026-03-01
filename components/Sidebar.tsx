@@ -107,7 +107,7 @@ export default function Sidebar({ levels, currentLevel, completedLevels, onSelec
       {/* Footer */}
       <div className="px-4 py-3 border-t border-[var(--color-border-primary)] shrink-0">
         <div className="text-[10px] text-[var(--color-text-faint)] text-center">
-          API Trainer · QA Edition
+          API Trainer
         </div>
       </div>
     </aside>

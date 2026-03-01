@@ -333,7 +333,6 @@ export default function Home() {
           </div>
           <div>
             <span className="text-sm font-bold text-[var(--color-text-primary)] tracking-tight">API Trainer</span>
-            <span className="ml-2 text-[10px] text-[#FF6C37] font-semibold">QA Edition</span>
           </div>
         </div>
 
