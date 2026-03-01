@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useUser, UserButton } from '@clerk/nextjs';
 import Sidebar from '@/components/Sidebar';
 import RequestBuilder, { type HeaderRow } from '@/components/RequestBuilder';
 import ResponsePanel, { type ResponseData } from '@/components/ResponsePanel';
@@ -12,24 +13,6 @@ import { createValidator } from '@/lib/validation-engine';
 import type { SerializableLevel, Level } from '@/lib/types';
 import { mockFetch } from '@/lib/mock-fetch';
 import { isMockDataInitialized, setMockData } from '@/lib/mock-storage';
-
-const STORAGE_KEY = 'api-trainer-completed';
-
-function loadCompleted(): Set<number> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? new Set(JSON.parse(raw) as number[]) : new Set();
-  } catch {
-    return new Set();
-  }
-}
-
-function saveCompleted(s: Set<number>) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(s)));
-  } catch {}
-}
 
 function buildHeaders(rows: HeaderRow[]): Record<string, string> {
   const out: Record<string, string> = {};
@@ -72,8 +55,10 @@ function toLevel(sl: SerializableLevel): Level {
 }
 
 export default function Home() {
+  const { isLoaded: isUserLoaded } = useUser();
   const [levels, setLevels] = useState<Level[]>([]);
   const [levelsLoaded, setLevelsLoaded] = useState(false);
+  const [progressLoaded, setProgressLoaded] = useState(false);
   const [currentLevel, setCurrentLevel] = useState(0);
   const [completedLevels, setCompletedLevels] = useState<Set<number>>(new Set());
   const [justCompleted, setJustCompleted] = useState<Set<number>>(new Set());
@@ -120,11 +105,28 @@ export default function Home() {
 
   const responseRef = useRef<HTMLDivElement>(null);
 
-  // Load completed from localStorage
+  // Load completed from server
   useEffect(() => {
-    const c = loadCompleted();
-    setCompletedLevels(c);
-    setJustCompleted(c);
+    if (!isUserLoaded) return;
+    fetch('/api/progress')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data.completedLevels)) {
+          const s = new Set<number>(data.completedLevels);
+          setCompletedLevels(s);
+          setJustCompleted(s);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setProgressLoaded(true));
+  }, [isUserLoaded]);
+
+  const saveProgress = useCallback((s: Set<number>) => {
+    fetch('/api/progress', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completedLevels: Array.from(s) }),
+    }).catch(() => {});
   }, []);
 
   // Fetch levels from API
@@ -250,7 +252,7 @@ export default function Home() {
           next.add(currentLevel);
           setCompletedLevels(next);
           setJustCompleted(prev => new Set(Array.from(prev).concat(currentLevel)));
-          saveCompleted(next);
+          saveProgress(next);
         }
       }
     } catch (err: unknown) {
@@ -270,7 +272,7 @@ export default function Home() {
       setIsLoading(false);
       setRefreshToken(t => t + 1);
     }
-  }, [url, method, headers, body, currentLevel, completedLevels, levels]);
+  }, [url, method, headers, body, currentLevel, completedLevels, levels, saveProgress]);
 
   const handleNextLevel = useCallback(() => {
     const idx = levels.findIndex(l => l.id === currentLevel);
@@ -302,20 +304,20 @@ export default function Home() {
       const empty = new Set<number>();
       setCompletedLevels(empty);
       setJustCompleted(empty);
-      saveCompleted(empty);
+      saveProgress(empty);
       const firstId = levels.length > 0 ? levels[0].id : 1;
       setCurrentLevel(firstId);
       applyLevel(firstId);
     }
-  }, [applyLevel, levels]);
+  }, [applyLevel, levels, saveProgress]);
 
   const level = levels.find(l => l.id === currentLevel) || levels[0];
   const isComplete = justCompleted.has(currentLevel);
 
-  if (!levelsLoaded) {
+  if (!levelsLoaded || !isUserLoaded || !progressLoaded) {
     return (
       <div className="flex items-center justify-center h-full bg-[var(--color-bg-deepest)]">
-        <div className="text-[var(--color-text-dimmed)] text-sm">Loading levels...</div>
+        <div className="text-[var(--color-text-dimmed)] text-sm">Loading...</div>
       </div>
     );
   }
@@ -420,6 +422,8 @@ export default function Home() {
           >
             Clear Progress
           </button>
+
+          <UserButton afterSignOutUrl="/sign-in" />
         </div>
       </header>
 

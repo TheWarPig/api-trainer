@@ -235,4 +235,25 @@ export function rowToOrder(row: Record<string, unknown>): Order {
   };
 }
 
+// ── User progress table ──
+
+let progressInitPromise: Promise<void> | null = null;
+
+async function doProgressInit() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_progress (
+      clerk_user_id   TEXT PRIMARY KEY,
+      completed_levels JSONB NOT NULL DEFAULT '[]',
+      updated_at      TIMESTAMP NOT NULL DEFAULT now()
+    )
+  `;
+}
+
+export async function ensureProgressTable() {
+  if (!progressInitPromise) {
+    progressInitPromise = doProgressInit();
+  }
+  await progressInitPromise;
+}
+
 export { sql };

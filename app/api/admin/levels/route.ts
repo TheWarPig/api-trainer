@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { checkAuth } from '@/lib/admin-auth';
+import { checkAdmin } from '@/lib/admin-auth';
 import { getAllLevels, upsertLevel, getNextCustomId } from '@/lib/level-storage';
 import type { SerializableLevel } from '@/lib/types';
 
-export async function GET(request: Request) {
-  if (!checkAuth(request)) {
+export async function GET() {
+  const { authorized } = await checkAdmin();
+  if (!authorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const levels = await getAllLevels();
@@ -12,7 +13,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!checkAuth(request)) {
+  const { authorized } = await checkAdmin();
+  if (!authorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

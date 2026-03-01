@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { checkAuth } from '@/lib/admin-auth';
+import { checkAdmin } from '@/lib/admin-auth';
 import { updateSortOrders } from '@/lib/level-storage';
 
 export async function PUT(request: Request) {
-  if (!checkAuth(request)) {
+  const { authorized } = await checkAdmin();
+  if (!authorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

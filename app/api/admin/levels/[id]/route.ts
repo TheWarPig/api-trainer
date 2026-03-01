@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { checkAuth } from '@/lib/admin-auth';
+import { checkAdmin } from '@/lib/admin-auth';
 import { getLevelById, upsertLevel, deleteLevel, getAllLevels, updateSortOrders } from '@/lib/level-storage';
 import { levels as builtinLevels } from '@/lib/levels';
 import { builtinValidationMap } from '@/lib/builtin-validation-map';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  if (!checkAuth(request)) {
+export async function GET(_request: Request, { params }: { params: { id: string } }) {
+  const { authorized } = await checkAdmin();
+  if (!authorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -20,7 +21,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  if (!checkAuth(request)) {
+  const { authorized } = await checkAdmin();
+  if (!authorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -42,8 +44,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  if (!checkAuth(request)) {
+export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+  const { authorized } = await checkAdmin();
+  if (!authorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

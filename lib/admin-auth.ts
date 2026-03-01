@@ -1,17 +1,14 @@
-import crypto from 'crypto';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 
-const ADMIN_PASSWORD = 'idoido10';
+export async function checkAdmin(): Promise<{ authorized: boolean; userId: string | null }> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { authorized: false, userId: null };
+  }
 
-function generateToken(): string {
-  return crypto.createHash('sha256').update(ADMIN_PASSWORD + '-admin-session').digest('hex');
-}
+  const client = await clerkClient();
+  const user = await client.users.getUser(userId);
+  const role = (user.publicMetadata as { role?: string })?.role;
 
-export function verifyToken(token: string): boolean {
-  return token === generateToken();
-}
-
-export function checkAuth(request: Request): boolean {
-  const auth = request.headers.get('Authorization') || '';
-  const token = auth.replace('Bearer ', '');
-  return verifyToken(token);
+  return { authorized: role === 'admin', userId };
 }
