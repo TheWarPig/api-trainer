@@ -16,19 +16,19 @@ interface SidebarProps {
 }
 
 const difficultyColor: Record<Difficulty, string> = {
-  Beginner: 'text-emerald-400',
-  Easy:     'text-green-400',
-  Medium:   'text-yellow-400',
-  Hard:     'text-orange-400',
-  Expert:   'text-red-400',
+  Beginner: 'text-emerald-600 dark:text-emerald-400',
+  Easy:     'text-green-600 dark:text-green-400',
+  Medium:   'text-yellow-600 dark:text-yellow-400',
+  Hard:     'text-orange-600 dark:text-orange-400',
+  Expert:   'text-rose-700 dark:text-rose-400',
 };
 
 const difficultyDot: Record<Difficulty, string> = {
-  Beginner: 'bg-emerald-400',
-  Easy:     'bg-green-400',
-  Medium:   'bg-yellow-400',
-  Hard:     'bg-orange-400',
-  Expert:   'bg-red-400',
+  Beginner: 'bg-emerald-600 dark:bg-emerald-400',
+  Easy:     'bg-green-600 dark:bg-green-400',
+  Medium:   'bg-yellow-600 dark:bg-yellow-400',
+  Hard:     'bg-orange-600 dark:bg-orange-400',
+  Expert:   'bg-rose-700 dark:bg-rose-400',
 };
 
 export default function Sidebar({ levels, currentLevel, completedLevels, onSelectLevel }: SidebarProps) {
