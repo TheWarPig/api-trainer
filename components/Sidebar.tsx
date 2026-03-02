@@ -35,7 +35,7 @@ export default function Sidebar({ levels, currentLevel, completedLevels, onSelec
   const completed = completedLevels.size;
 
   return (
-    <aside className="flex flex-col w-56 shrink-0 bg-[var(--color-bg-surface)] border-r border-[var(--color-border-primary)] min-h-0">
+    <aside id="tutorial-sidebar" className="flex flex-col w-56 shrink-0 bg-[var(--color-bg-surface)] border-r border-[var(--color-border-primary)] min-h-0">
       {/* Header */}
       <div className="px-4 py-4 border-b border-[var(--color-border-primary)]">
         <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-dimmed)] mb-1">Progress</div>

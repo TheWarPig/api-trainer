@@ -7,6 +7,7 @@ import ResponsePanel, { type ResponseData } from '@/components/ResponsePanel';
 import AssignmentPanel from '@/components/AssignmentPanel';
 import DataExplorer from '@/components/DataExplorer';
 import ApiDocs from '@/components/ApiDocs';
+import TutorialOverlay from '@/components/TutorialOverlay';
 import { levels as builtinLevels } from '@/lib/levels';
 import { createValidator } from '@/lib/validation-engine';
 import type { SerializableLevel, Level } from '@/lib/types';
@@ -96,6 +97,16 @@ export default function Home() {
 
   // API docs
   const [docsOpen, setDocsOpen] = useState(false);
+
+  // Tutorial
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+
+  // Auto-open tutorial on first visit
+  useEffect(() => {
+    if (!localStorage.getItem('api-trainer-tutorial-seen')) {
+      setTutorialOpen(true);
+    }
+  }, []);
 
   // Theme
   const [isDark, setIsDark] = useState(true);
@@ -365,35 +376,13 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Center: level indicator */}
-        <div className="flex-1 flex items-center justify-center gap-2">
-          {levels.map((l, idx) => (
-            <button
-              key={l.id}
-              onClick={() => handleSelectLevel(l.id)}
-              title={l.title}
-              className={`
-                w-6 h-6 rounded-full text-[10px] font-bold transition-all shrink-0
-                ${l.id === currentLevel
-                  ? 'bg-[#FF6C37] text-white scale-110 shadow-lg shadow-[#FF6C37]/30'
-                  : completedLevels.has(l.id)
-                    ? 'bg-emerald-500/80 text-white hover:bg-emerald-500'
-                    : 'bg-[var(--color-bg-elevated)] text-[var(--color-text-dimmed)] hover:bg-[var(--color-bg-hover)]'
-                }
-              `}
-            >
-              {completedLevels.has(l.id) && l.id !== currentLevel ? '✓' : idx + 1}
-            </button>
-          ))}
-          <span className="ml-2 text-xs text-[var(--color-text-dimmed)]">
-            {completedLevels.size}/{levels.length} complete
-          </span>
-        </div>
+        <div className="flex-1" />
 
         {/* Right: actions */}
         <div className="flex items-center gap-2 shrink-0">
           {/* API Docs toggle */}
           <button
+            id="tutorial-btn-docs"
             onClick={() => setDocsOpen(o => !o)}
             className={`
               flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border transition-colors font-medium
@@ -410,6 +399,7 @@ export default function Home() {
 
           {/* Data Explorer toggle */}
           <button
+            id="tutorial-btn-db"
             onClick={() => setExplorerOpen(o => !o)}
             className={`
               flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border transition-colors font-medium
@@ -442,6 +432,19 @@ export default function Home() {
             )}
           </button>
 
+          {/* Tutorial button */}
+          <button
+            onClick={() => {
+              setDocsOpen(false);
+              setExplorerOpen(false);
+              setTutorialOpen(true);
+            }}
+            className="w-7 h-7 flex items-center justify-center rounded-full bg-[var(--color-bg-elevated)] border border-[var(--color-border-hover)] text-[var(--color-text-dimmed)] hover:text-[#FF6C37] hover:border-[#FF6C37]/50 transition-colors text-sm font-bold"
+            title="Show tutorial"
+          >
+            ?
+          </button>
+
           <button
             onClick={handleClearProgress}
             className="text-xs text-[var(--color-text-faint)] hover:text-[var(--color-text-secondary)] transition-colors px-2 py-1 rounded hover:bg-[var(--color-hover-overlay)]"
@@ -464,7 +467,7 @@ export default function Home() {
         {/* Center: Request + Response */}
         <main className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Request builder (top ~55%) */}
-          <div style={{ height: '55%' }} className="overflow-hidden border-b border-[var(--color-border-primary)]">
+          <div id="tutorial-request-builder" style={{ height: '55%' }} className="overflow-hidden border-b border-[var(--color-border-primary)]">
             <RequestBuilder
               method={method}
               url={url}
@@ -480,7 +483,7 @@ export default function Home() {
           </div>
 
           {/* Response panel (bottom ~45%) */}
-          <div ref={responseRef} className="overflow-hidden" style={{ height: '45%' }}>
+          <div id="tutorial-response" ref={responseRef} className="overflow-hidden" style={{ height: '45%' }}>
             <ResponsePanel response={response} isLoading={isLoading} />
           </div>
 
@@ -502,8 +505,18 @@ export default function Home() {
           onNextLevel={handleNextLevel}
           onReset={handleReset}
           isLastLevel={levels.length > 0 && currentLevel === levels[levels.length - 1].id}
+          levelsLength={levels.length}
         />
       </div>
+
+      {/* ── Tutorial Overlay ── */}
+      <TutorialOverlay
+        isOpen={tutorialOpen}
+        onClose={() => {
+          localStorage.setItem('api-trainer-tutorial-seen', '1');
+          setTutorialOpen(false);
+        }}
+      />
 
       {/* ── API Docs Panel ── */}
       <ApiDocs open={docsOpen} onClose={() => setDocsOpen(false)} />

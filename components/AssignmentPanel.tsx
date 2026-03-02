@@ -9,6 +9,7 @@ interface AssignmentPanelProps {
   onNextLevel: () => void;
   onReset: () => void;
   isLastLevel: boolean;
+  levelsLength: number;
 }
 
 const difficultyStyle: Record<Difficulty, { bg: string; text: string; border: string }> = {
@@ -27,7 +28,7 @@ const methodColor: Record<string, string> = {
   DELETE: 'text-[#F93E3E] bg-[#F93E3E]/10 border-[#F93E3E]/30',
 };
 
-export default function AssignmentPanel({ level, isComplete, onNextLevel, onReset, isLastLevel }: AssignmentPanelProps) {
+export default function AssignmentPanel({ level, isComplete, onNextLevel, onReset, isLastLevel, levelsLength }: AssignmentPanelProps) {
   const [hintsOpen, setHintsOpen] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
@@ -39,12 +40,12 @@ export default function AssignmentPanel({ level, isComplete, onNextLevel, onRese
   const diff = difficultyStyle[level.difficulty];
 
   return (
-    <aside className="flex flex-col w-72 shrink-0 bg-[var(--color-bg-surface)] border-l border-[var(--color-border-primary)] overflow-y-auto">
+    <aside id="tutorial-assignment" className="flex flex-col w-72 shrink-0 bg-[var(--color-bg-surface)] border-l border-[var(--color-border-primary)] overflow-y-auto">
       {/* Header */}
       <div className="px-4 py-4 border-b border-[var(--color-border-primary)] bg-[var(--color-bg-panel)]">
         <div className="flex items-start justify-between gap-2 mb-2">
           <span className="text-[10px] font-semibold text-[var(--color-text-faint)] uppercase tracking-wider">
-            Level {level.id} of 20
+            Level {level.id} of {levelsLength}
           </span>
           <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${diff.bg} ${diff.text} ${diff.border}`}>
             {level.difficulty}
@@ -82,7 +83,7 @@ export default function AssignmentPanel({ level, isComplete, onNextLevel, onRese
           )}
           {isLastLevel && (
             <div className="mt-2 text-center text-xs text-emerald-700 dark:text-emerald-400 font-bold">
-              🏆 You completed all 20 levels!
+              🏆 You completed all 30 levels!
             </div>
           )}
         </div>
@@ -92,7 +93,7 @@ export default function AssignmentPanel({ level, isComplete, onNextLevel, onRese
       <div className="flex-1 p-4 space-y-4 overflow-y-auto">
         {/* Concept */}
         <section>
-          <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">{level.description}</p>
+          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">{level.description}</p>
         </section>
 
         {/* Task */}
