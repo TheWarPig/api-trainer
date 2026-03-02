@@ -339,4 +339,32 @@ export function rowToCoupon(row: Record<string, unknown>): Coupon {
   };
 }
 
+// ── User progress table ──
+
+let progressInitPromise: Promise<void> | null = null;
+
+async function doProgressInit() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_progress (
+      clerk_user_id    TEXT PRIMARY KEY,
+      completed_levels JSONB NOT NULL DEFAULT '[]',
+      tutorial_seen    BOOLEAN NOT NULL DEFAULT false,
+      updated_at       TIMESTAMP NOT NULL DEFAULT now()
+    )
+  `;
+
+  // Migrate: add tutorial_seen column if table existed without it
+  await sql`
+    ALTER TABLE user_progress
+    ADD COLUMN IF NOT EXISTS tutorial_seen BOOLEAN NOT NULL DEFAULT false
+  `;
+}
+
+export async function ensureProgressTable() {
+  if (!progressInitPromise) {
+    progressInitPromise = doProgressInit();
+  }
+  await progressInitPromise;
+}
+
 export { sql };

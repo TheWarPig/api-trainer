@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useUser, UserButton } from '@clerk/nextjs';
 import Sidebar from '@/components/Sidebar';
 import RequestBuilder, { type HeaderRow } from '@/components/RequestBuilder';
 import ResponsePanel, { type ResponseData } from '@/components/ResponsePanel';
@@ -13,24 +14,6 @@ import { createValidator } from '@/lib/validation-engine';
 import type { SerializableLevel, Level } from '@/lib/types';
 import { mockFetch } from '@/lib/mock-fetch';
 import { isMockDataInitialized, setMockData } from '@/lib/mock-storage';
-
-const STORAGE_KEY = 'api-trainer-completed';
-
-function loadCompleted(): Set<number> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? new Set(JSON.parse(raw) as number[]) : new Set();
-  } catch {
-    return new Set();
-  }
-}
-
-function saveCompleted(s: Set<number>) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(s)));
-  } catch {}
-}
 
 function buildHeaders(rows: HeaderRow[]): Record<string, string> {
   const out: Record<string, string> = {};
@@ -73,6 +56,9 @@ function toLevel(sl: SerializableLevel): Level {
 }
 
 export default function Home() {
+  const { isLoaded, isSignedIn, user } = useUser();
+  const [progressLoaded, setProgressLoaded] = useState(false);
+
   const [levels, setLevels] = useState<Level[]>([]);
   const [levelsLoaded, setLevelsLoaded] = useState(false);
   const [levelsError, setLevelsError] = useState('');
@@ -101,12 +87,24 @@ export default function Home() {
   // Tutorial
   const [tutorialOpen, setTutorialOpen] = useState(false);
 
-  // Auto-open tutorial on first visit
+  // Load progress from server when signed in
   useEffect(() => {
-    if (!localStorage.getItem('api-trainer-tutorial-seen')) {
-      setTutorialOpen(true);
-    }
-  }, []);
+    if (!isLoaded || !isSignedIn) return;
+    fetch('/api/progress')
+      .then(res => res.json())
+      .then(data => {
+        const completed = new Set<number>(data.completedLevels || []);
+        setCompletedLevels(completed);
+        setJustCompleted(completed);
+        if (!data.tutorialSeen) {
+          setTutorialOpen(true);
+        }
+        setProgressLoaded(true);
+      })
+      .catch(() => {
+        setProgressLoaded(true);
+      });
+  }, [isLoaded, isSignedIn]);
 
   // Theme
   const [isDark, setIsDark] = useState(true);
@@ -131,13 +129,6 @@ export default function Home() {
   }, []);
 
   const responseRef = useRef<HTMLDivElement>(null);
-
-  // Load completed from localStorage
-  useEffect(() => {
-    const c = loadCompleted();
-    setCompletedLevels(c);
-    setJustCompleted(c);
-  }, []);
 
   // Fetch levels from API
   useEffect(() => {
@@ -274,7 +265,11 @@ export default function Home() {
           next.add(currentLevel);
           setCompletedLevels(next);
           setJustCompleted(prev => new Set(Array.from(prev).concat(currentLevel)));
-          saveCompleted(next);
+          fetch('/api/progress', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completedLevels: Array.from(next), tutorialSeen: true }),
+          }).catch(() => {});
         }
       }
     } catch (err: unknown) {
@@ -332,7 +327,11 @@ export default function Home() {
       const empty = new Set<number>();
       setCompletedLevels(empty);
       setJustCompleted(empty);
-      saveCompleted(empty);
+      fetch('/api/progress', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completedLevels: [], tutorialSeen: true }),
+      }).catch(() => {});
       const firstId = levels.length > 0 ? levels[0].id : 1;
       setCurrentLevel(firstId);
       applyLevel(firstId);
@@ -341,6 +340,15 @@ export default function Home() {
 
   const level = levels.find(l => l.id === currentLevel) || levels[0];
   const isComplete = justCompleted.has(currentLevel);
+
+  // Clerk loading state
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center h-full bg-[var(--color-bg-deepest)]">
+        <div className="text-[var(--color-text-dimmed)] text-sm">Loading...</div>
+      </div>
+    );
+  }
 
   if (!levelsLoaded) {
     return (
@@ -415,6 +423,20 @@ export default function Home() {
             DB Explorer
           </button>
 
+          {/* Admin Panel — only for admin users */}
+          {user?.publicMetadata?.role === 'admin' && (
+            <a
+              href="/admin"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border transition-colors font-medium bg-[var(--color-bg-elevated)] border-[var(--color-border-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:border-[#666]"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              Admin Panel
+            </a>
+          )}
+
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
@@ -451,6 +473,9 @@ export default function Home() {
           >
             Clear Progress
           </button>
+
+          {/* User button (Clerk) */}
+          <UserButton />
         </div>
       </header>
 
@@ -513,8 +538,12 @@ export default function Home() {
       <TutorialOverlay
         isOpen={tutorialOpen}
         onClose={() => {
-          localStorage.setItem('api-trainer-tutorial-seen', '1');
           setTutorialOpen(false);
+          fetch('/api/progress', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completedLevels: Array.from(completedLevels), tutorialSeen: true }),
+          }).catch(() => {});
         }}
       />
 

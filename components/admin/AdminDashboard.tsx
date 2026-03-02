@@ -1,13 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { UserButton } from '@clerk/nextjs';
 import type { SerializableLevel, Difficulty } from '@/lib/types';
 import LevelEditor from './LevelEditor';
-
-interface AdminDashboardProps {
-  token: string;
-  onLogout: () => void;
-}
 
 const difficultyColor: Record<Difficulty, string> = {
   Beginner: 'text-emerald-400',
@@ -25,7 +21,7 @@ const difficultyBg: Record<Difficulty, string> = {
   Expert:   'bg-red-400/10',
 };
 
-export default function AdminDashboard({ token, onLogout }: AdminDashboardProps) {
+export default function AdminDashboard() {
   const [levels, setLevels] = useState<SerializableLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -34,13 +30,14 @@ export default function AdminDashboard({ token, onLogout }: AdminDashboardProps)
   const [saving, setSaving] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
   const fetchLevels = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/admin/levels', { headers: { Authorization: `Bearer ${token}` } });
-      if (res.status === 401) { onLogout(); return; }
+      const res = await fetch('/api/admin/levels');
+      if (!res.ok) {
+        setError('Failed to load levels');
+        return;
+      }
       const data = await res.json();
       setLevels(data);
       setError('');
@@ -49,7 +46,7 @@ export default function AdminDashboard({ token, onLogout }: AdminDashboardProps)
     } finally {
       setLoading(false);
     }
-  }, [token, onLogout]);
+  }, []);
 
   useEffect(() => { fetchLevels(); }, [fetchLevels]);
 
@@ -88,7 +85,7 @@ export default function AdminDashboard({ token, onLogout }: AdminDashboardProps)
       const method = isNew ? 'POST' : 'PUT';
       const res = await fetch(url, {
         method,
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
@@ -118,7 +115,6 @@ export default function AdminDashboard({ token, onLogout }: AdminDashboardProps)
     try {
       const res = await fetch(`/api/admin/levels/${level.id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
         const err = await res.json();
@@ -154,7 +150,7 @@ export default function AdminDashboard({ token, onLogout }: AdminDashboardProps)
     try {
       await fetch('/api/admin/levels/reorder', {
         method: 'PUT',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order }),
       });
     } catch {
@@ -191,12 +187,7 @@ export default function AdminDashboard({ token, onLogout }: AdminDashboardProps)
           >
             + Add Level
           </button>
-          <button
-            onClick={onLogout}
-            className="text-xs text-[var(--color-text-faint)] hover:text-[var(--color-text-secondary)] transition-colors"
-          >
-            Logout
-          </button>
+          <UserButton />
         </div>
       </header>
 
@@ -204,7 +195,7 @@ export default function AdminDashboard({ token, onLogout }: AdminDashboardProps)
       {error && (
         <div className="mx-6 mt-4 p-3 rounded bg-red-400/10 border border-red-400/30 text-xs text-red-400 flex items-center justify-between">
           {error}
-          <button onClick={() => setError('')} className="text-red-400 hover:text-red-300">✕</button>
+          <button onClick={() => setError('')} className="text-red-400 hover:text-red-300">&#x2715;</button>
         </div>
       )}
 
@@ -245,7 +236,7 @@ export default function AdminDashboard({ token, onLogout }: AdminDashboardProps)
                     `}
                   >
                     <td className="px-3 py-2.5 text-xs text-[var(--color-text-dimmed)] font-mono">
-                      <span className="cursor-grab text-[var(--color-text-faint)] mr-1">⠿</span>
+                      <span className="cursor-grab text-[var(--color-text-faint)] mr-1">&#x2807;</span>
                       {level.id}
                     </td>
                     <td className="px-3 py-2.5">

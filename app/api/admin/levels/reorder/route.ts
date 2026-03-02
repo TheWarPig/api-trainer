@@ -3,7 +3,7 @@ import { checkAuth } from '@/lib/admin-auth';
 import { updateSortOrders } from '@/lib/level-storage';
 
 export async function PUT(request: Request) {
-  if (!checkAuth(request)) {
+  if (!await checkAuth()) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -5,8 +5,8 @@ import type { SerializableLevel } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
-  if (!checkAuth(request)) {
+export async function GET() {
+  if (!await checkAuth()) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const levels = await getAllLevels();
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!checkAuth(request)) {
+  if (!await checkAuth()) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
