@@ -873,7 +873,7 @@ export default function ApiDocs({ open, onClose }: ApiDocsProps) {
             </div>
             <div>
               <span className="text-sm font-bold text-[var(--color-text-primary)]">API Reference</span>
-              <span className="ml-2 text-[10px] text-[var(--color-text-dimmed)]">Mock Server · api-trainerx</span>
+              <span className="ml-2 text-[10px] text-[var(--color-text-dimmed)]">Mock Server · api-trainer</span>
             </div>
           </div>
 
@@ -913,7 +913,7 @@ export default function ApiDocs({ open, onClose }: ApiDocsProps) {
         <div className="flex items-center gap-6 px-5 py-2.5 bg-[var(--color-bg-deep)] border-b border-[var(--color-border-tertiary)] shrink-0 text-[11px]">
           <div className="flex items-center gap-1.5">
             <span className="text-[var(--color-text-faint)]">Base URL</span>
-            <code className="text-[var(--color-json-key)] font-mono">http://api-trainerx</code>
+            <code className="text-[var(--color-json-key)] font-mono">http://api-trainer</code>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-[var(--color-text-faint)]">Auth</span>
