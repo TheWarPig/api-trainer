@@ -169,7 +169,7 @@ export default function SignInPage() {
 
         {/* Right — Clerk sign-in widget */}
         <div className="shrink-0">
-          <SignIn />
+          <SignIn appearance={{ elements: { headerTitle: { display: 'none' }, headerSubtitle: { display: 'none' }, logoBox: { display: 'none' } } }} />
         </div>
       </div>
     </div>
