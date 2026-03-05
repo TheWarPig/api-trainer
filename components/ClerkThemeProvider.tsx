@@ -23,7 +23,7 @@ export default function ClerkThemeProvider({ children }: { children: React.React
   }, []);
 
   return (
-    <ClerkProvider appearance={isDark ? { baseTheme: dark } : undefined}>
+    <ClerkProvider afterSignOutUrl="/sign-in" appearance={isDark ? { baseTheme: dark } : undefined}>
       {children}
     </ClerkProvider>
   );
