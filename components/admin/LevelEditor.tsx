@@ -191,7 +191,7 @@ export default function LevelEditor({ level: initial, onSave, onCancel, isNew }:
                 </div>
                 {(data.defaultHeaders || []).map((h, i) => (
                   <div key={i} className="flex gap-2 mb-2">
-                    <input className={`${inputClass} w-40`} value={h.key} onChange={e => updateHeader(i, 'key', e.target.value)} placeholder="Header name" />
+                    <input className={`${inputClass} !w-40 shrink-0`} value={h.key} onChange={e => updateHeader(i, 'key', e.target.value)} placeholder="Header name" />
                     <input className={`${inputClass} flex-1`} value={h.value} onChange={e => updateHeader(i, 'value', e.target.value)} placeholder="Header value" />
                     <button type="button" onClick={() => removeHeader(i)} className="text-xs text-red-400 hover:text-red-300 px-2">✕</button>
                   </div>
